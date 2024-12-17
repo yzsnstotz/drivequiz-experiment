@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -19,7 +19,20 @@
       background-color: #007BFF;
       padding: 15px 0;
       margin: 0;
+    }
+
+    /* 域名、口号、标题的排版 */
+    h1 .domain {
       font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    h1 .slogan {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+    h1 .title {
+      font-size: 16px;
     }
 
     h2 {
@@ -86,7 +99,6 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
 
-    /* 随机题序选项更醒目 */
     #random-option {
       text-align: center;
       margin-top: 20px;
@@ -169,14 +181,16 @@
       color: #fff;
     }
     .correct.highlight {
-      background: #4DAFFF;
+      background: #0056B3;
+      box-shadow: 0 0 10px #0056B3;
     }
     .wrong {
       background: #FF4D4D;
       color: #fff;
     }
     .wrong.highlight {
-      background: #FF8C8C;
+      background: #B30000;
+      box-shadow: 0 0 10px #B30000;
     }
 
     #answer-display {
@@ -237,7 +251,12 @@
   </style>
 </head>
 <body>
-  <h1>足利驾校习题练习</h1>
+  <!-- 大标题板块，包含域名/口号/标题 -->
+  <h1>
+    <div class="domain">zalem.app</div>
+    <div class="slogan">你的霓虹驾驶之路从这里开始</div>
+    <div class="title">足利驾校习题练习</div>
+  </h1>
 
   <div id="container">
     <h2>请选择套题</h2>
@@ -352,6 +371,7 @@
     }
 
     getClientIPAndLogAccess();
+    fetchSheetNames();
 
     function loadRandomOrderSetting() {
       const setting = localStorage.getItem('randomOrder');
@@ -570,6 +590,12 @@
       setTimeout(() => {
         questionElem.innerText = q.question;
         resetButtonHighlight();
+        const ans = userAnswers[currentQuestionIndex];
+        if(ans === '⭕') {
+          document.getElementById('btn-correct').classList.add('highlight');
+        } else if(ans === '❌') {
+          document.getElementById('btn-wrong').classList.add('highlight');
+        }
         updateRemainingQuestions();
       }, 200);
 
@@ -861,9 +887,7 @@
       }
 
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A1:append?valueInputOption=RAW&key=${apiKey}`;
-      const body = {
-        values: values
-      };
+      const body = {values: values};
 
       await fetch(url, {
         method: "POST",
@@ -929,8 +953,6 @@
         consoleLogsContent.textContent = "加载日志出现异常";
       }
     }
-
-    fetchSheetNames();
   </script>
 </body>
 </html>
