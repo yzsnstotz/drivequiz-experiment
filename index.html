@@ -42,7 +42,7 @@
       font-size: 20px;
     }
 
-    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container, #update-logs-container {
+    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container, #update-logs-container, #function-intro-container {
       margin: 30px auto;
       max-width: 600px;
       border: 2px solid #ddd;
@@ -222,7 +222,7 @@
       max-width:100%;
     }
 
-    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button, #update-logs-container button {
+    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button, #update-logs-container button, #function-intro-container button {
       margin-top: 10px;
     }
 
@@ -241,7 +241,7 @@
       background: #f9f9f9;
     }
 
-    #update-logs-container {
+    #update-logs-container, #function-intro-container {
       display:none;
     }
     #update-logs-list {
@@ -254,8 +254,8 @@
   <!-- 大标题板块，包含域名/口号/标题 -->
   <h1>
     <div class="domain">zalem.app</div>
-    <div class="slogan">你的霓虹驾驶之路从这里开始</div>
-    <div class="title">足利驾校习题练习</div>
+    <div class="slogan">霓虹千里，始于足利，欢迎来到足利驾校！</div>
+    <div class="title">道路千万条，安全第一条；行车不规范，亲人泪两行！</div>
   </h1>
 
   <div id="container">
@@ -275,6 +275,7 @@
       <button onclick="clearAllHistory()">清除历史</button>
       <button onclick="viewConsoleLogs()">查看控制台日志</button>
       <button onclick="showUpdateLogs()">更新日志</button>
+      <button onclick="showFunctionIntro()">功能介绍</button>
       <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">继续考试</button>
     </div>
   </div>
@@ -341,6 +342,21 @@
         <li>增加错题复习功能，只要不清除历史即记录所有做错过的题目，并记录错误次数</li>
       </ul>
     </div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="function-intro-container" style="display:none;">
+    <h2>功能介绍</h2>
+    <p>欢迎使用足利驾校习题练习平台！以下是我们的主要功能：</p>
+    <ul>
+      <li><strong>选择套题：</strong>从多个套题中选择您想要练习的题目。</li>
+      <li><strong>随机题序：</strong>开启后，题目将以随机顺序出现，帮助您更好地掌握知识点。</li>
+      <li><strong>错题复习：</strong>查看并复习您之前做错的题目，帮助您巩固薄弱环节。</li>
+      <li><strong>历史记录：</strong>系统会自动保存您的考试进度，您可以随时继续未完成的考试。</li>
+      <li><strong>查看控制台日志：</strong>记录和查看系统运行日志，帮助开发者优化平台。</li>
+      <li><strong>更新日志：</strong>查看平台的最新更新内容，了解新增功能和修复的Bug。</li>
+      <li><strong>清除历史：</strong>一键清除您的考试记录和错题集，重新开始。</li>
+    </ul>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
@@ -742,6 +758,7 @@
       document.getElementById('current-mistakes-container').style.display='none';
       document.getElementById('console-logs-container').style.display='none';
       document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
       if(loadCurrentExam()) {
         continueExamBtn.style.display = 'inline-block';
       } else {
@@ -793,6 +810,7 @@
       document.getElementById('current-mistakes-container').style.display = 'none';
       document.getElementById('console-logs-container').style.display = 'none';
       document.getElementById('update-logs-container').style.display = 'none';
+      document.getElementById('function-intro-container').style.display = 'none';
       document.getElementById('mistake-review-container').style.display = 'block';
 
       const mistakeContainer = document.getElementById('mistake-questions');
@@ -820,6 +838,17 @@
            <div><strong>错误次数：</strong>${cCount}</div>`;
         mistakeContainer.appendChild(questionDiv);
       });
+    }
+
+    function showFunctionIntro() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='block';
     }
 
     function clearAllHistory() {
@@ -903,6 +932,7 @@
       document.getElementById('mistake-review-container').style.display='none';
       document.getElementById('current-mistakes-container').style.display='none';
       document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
       document.getElementById('console-logs-container').style.display='block';
 
       const consoleLogsContent = document.getElementById('console-logs-content');
