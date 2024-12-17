@@ -39,7 +39,7 @@
       padding: 20px;
     }
 
-    /* 调整初始页面套题按钮布局 */
+    /* 初始页面按钮布局 */
     #sheet-selection {
       display: flex;
       flex-wrap: wrap;
@@ -72,7 +72,6 @@
       line-height: 1.6;
     }
 
-    /* 下方三个操作按钮也分开一下 */
     #info button {
       margin: 10px 5px 0 5px;
       padding: 10px 15px;
@@ -86,6 +85,21 @@
     #info button:hover {
       transform: translateY(-3px);
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    /* 增加随机题序选项样式 */
+    #random-option {
+      text-align: center;
+      margin-top: 10px;
+      color: #333;
+      font-size: 14px;
+    }
+    #random-option label {
+      cursor: pointer;
+    }
+    #random-option input[type="checkbox"] {
+      margin-right: 5px;
+      vertical-align: middle;
     }
 
     #question {
@@ -172,7 +186,7 @@
       color: #333;
     }
 
-    /* 列表页面(错题复习、当前错题查看)中题目信息的样式 */
+    /* 列表页面(错题复习、本次错题)中题目信息的样式 */
     #mistake-questions > div, #current-mistakes-list > div {
       border-bottom: 1px solid #ccc;
       margin-bottom: 15px;
@@ -212,6 +226,13 @@
 
   <div id="container">
     <h2>请选择套题</h2>
+    <!-- 初始页面增加随机题序选项 -->
+    <div id="random-option">
+      <label>
+        <input type="checkbox" id="random-checkbox"> 随机题序
+      </label>
+    </div>
+
     <div id="sheet-selection">加载中...</div>
     <div id="info">
       <p>制作人微信：Leoyongzhe</p>
@@ -281,6 +302,25 @@
     let answerVisible = false;
     let mistakeQuestions = []; 
     let logs = [];
+
+    // 读取随机选项状态
+    let randomOrder = loadRandomOrderSetting();
+
+    function loadRandomOrderSetting() {
+      const setting = localStorage.getItem('randomOrder');
+      return setting === 'true'; // 默认为false，如果无记录则返回false
+    }
+
+    function saveRandomOrderSetting(value) {
+      localStorage.setItem('randomOrder', value ? 'true' : 'false');
+    }
+
+    const randomCheckbox = document.getElementById('random-checkbox');
+    randomCheckbox.checked = randomOrder; 
+    randomCheckbox.addEventListener('change', () => {
+      randomOrder = randomCheckbox.checked;
+      saveRandomOrderSetting(randomOrder);
+    });
 
     getClientIPAndLogAccess();
 
@@ -362,14 +402,15 @@
         }
         const data = await response.json();
         if(!data.values || data.values.length < 1) {
-          // 不需要slice(1)，因为现在数据从第一行开始都是题目行，无表头
           sheetNameElem.textContent = `套题[${sheetName}]数据为空`;
           questionElem.textContent = "";
           return;
         }
         currentSheetName = sheetName;
-        questions = shuffle(processSheetData(data.values)); 
-        // 不再使用 slice(1)，直接使用 data.values，因为没有表头行
+        questions = processSheetData(data.values);
+        if(randomOrder) {
+          questions = shuffle(questions);
+        }
         startQuiz();
       } catch(e) {
         console.error(e);
@@ -379,14 +420,13 @@
     }
 
     function processSheetData(values) {
-      // 直接从 values[0] 开始作为第一题
       return values.map((row, idx) => {
         let qText = row[1] ? row[1] : "";
         qText = qText.replace(/\u200B/g, '').trim();
 
         if (!qText) {
           const time = new Date().toLocaleString();
-          const rowNumber = idx + 1; // rowNumber对应实际行号
+          const rowNumber = idx + 1;
           const colNumber = 2;
           logs.push({
             type: 'error',
@@ -423,7 +463,6 @@
       userAnswers = [];
       answerVisible = false;
       mistakeQuestions = [];
-
       document.getElementById('container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'block';
       document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
@@ -533,25 +572,33 @@
         const userAnswer = userAnswers[index] || "";
         if (userAnswer !== "" && userAnswer !== q.answer) {
           incorrectCount++;
-          mistakeQuestions.push({
-            question: q.question,
-            image: q.image,
-            answer: q.answer,
-            userAnswer: userAnswer
-          });
+          // 这里存入sheetName字段
           const key = q.question + '||' + q.answer + '||' + q.image;
           if (mistakesObj[key]) {
             mistakesObj[key].count += 1;
             mistakesObj[key].userAnswer = userAnswer;
+            // 更新sheetName信息（如果原先没有，补上）
+            if(!mistakesObj[key].sheetName) {
+              mistakesObj[key].sheetName = currentSheetName;
+            }
           } else {
             mistakesObj[key] = {
               question: q.question,
               image: q.image,
               answer: q.answer,
               count: 1,
-              userAnswer: userAnswer
+              userAnswer: userAnswer,
+              sheetName: currentSheetName
             };
           }
+
+          mistakeQuestions.push({
+            question: q.question,
+            image: q.image,
+            answer: q.answer,
+            userAnswer: userAnswer,
+            sheetName: currentSheetName
+          });
         }
       });
 
@@ -592,7 +639,8 @@
         }
 
         questionDiv.innerHTML =
-        `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+        `<div><strong>套题：</strong>${item.sheetName || "无记录"}</div>
+         <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
          ${imgHTML}
          <div><strong>您的错误答案：</strong>${item.userAnswer}</div>
          <div><strong>正确答案：</strong>${item.answer}</div>`;
@@ -621,6 +669,7 @@
         const item = mistakesObj[key];
         const uAnswer = item.userAnswer || "无记录";
         const cCount = (item.count !== undefined) ? item.count : "无记录";
+        const sheetNameDisplay = item.sheetName || "无记录";
 
         const questionDiv = document.createElement('div');
 
@@ -630,7 +679,8 @@
         }
 
         questionDiv.innerHTML =
-          `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+          `<div><strong>套题：</strong>${sheetNameDisplay}</div>
+           <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
            <div><strong>您的最后错误答案：</strong>${uAnswer}</div>
            <div><strong>正确答案：</strong>${item.answer}</div>
