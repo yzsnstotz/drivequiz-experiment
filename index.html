@@ -1,72 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>足利驾校习题练习</title>
   <style>
-    /* 全局样式 */
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background-color: #e9f5ff; /* 整体背景色：淡蓝色 */
+      background-color: #e9f5ff;
     }
-
     h1 {
       text-align: center;
       color: #fff;
-      background-color: #007BFF; /* 标题背景色 */
+      background-color: #007BFF;
       padding: 10px 0;
       margin: 0;
       font-size: 24px;
     }
-
     h2 {
       text-align: center;
       color: #333;
       margin: 10px 0;
     }
 
-    /* 主容器 */
-    #container, #quiz-container, #result-container {
+    #container, #quiz-container, #result-container, #mistake-review-container, #console-logs-container {
       margin: 20px auto;
       max-width: 600px;
       border: 2px solid #ddd;
       border-radius: 10px;
       background-color: #fff;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
       padding: 20px;
     }
 
-    /* 问题区域 */
     #question {
       font-size: 20px;
       margin: 20px 0;
       padding: 15px;
       border-radius: 8px;
-      background-color: #fdf8e4; /* 题目文本区背景色：淡黄色 */
+      background-color: #fdf8e4;
       text-align: center;
+      min-height: 50px; 
     }
 
-    /* 图片区域 */
     #image {
       margin-bottom: 20px;
-      min-height: 150px;
       border: 2px solid #ccc;
       border-radius: 10px;
-      background-color: #f0f8ff; /* 图片区域背景色：淡蓝色 */
+      background-color: #f0f8ff;
       display: flex;
       justify-content: center;
       align-items: center;
-    }
-    #image img {
-      max-width: 100%;
-      max-height: 150px;
-      border-radius: 5px;
+      min-height: 50px; 
+      padding: 10px;
     }
 
-    /* 按钮样式 */
     .options {
       display: flex;
       justify-content: space-around;
@@ -83,7 +73,7 @@
     }
     button:hover {
       transform: translateY(-3px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
 
     .correct {
@@ -91,17 +81,16 @@
       color: #fff;
     }
     .correct.highlight {
-      background: #4DAFFF; /* 高亮色 */
+      background: #4DAFFF;
     }
     .wrong {
       background: #FF4D4D;
       color: #fff;
     }
     .wrong.highlight {
-      background: #FF8C8C; /* 高亮色 */
+      background: #FF8C8C;
     }
 
-    /* 控制按钮布局 */
     .controls {
       display: flex;
       justify-content: space-between;
@@ -111,7 +100,6 @@
       width: 48%;
     }
 
-    /* 答案显示 */
     #answer-display {
       font-size: 18px;
       font-weight: bold;
@@ -120,7 +108,6 @@
       text-align: center;
     }
 
-    /* 初始页面信息 */
     #info {
       text-align: center;
       margin-top: 20px;
@@ -128,38 +115,46 @@
       font-size: 14px;
     }
 
-    /* 错题复习页面 */
     #mistake-review-container {
       display: none;
-      max-width: 700px;
-      margin: 20px auto;
-      background-color: #fff;
-      border-radius: 10px;
-      padding: 20px;
+    }
+
+    #console-logs-container {
+      display: none;
+    }
+
+    table {
+      width:100%;
+      border-collapse: collapse;
+      margin-top:20px;
+    }
+    table,th,td {
+      border:1px solid #ccc;
+      padding:5px;
+      text-align:left;
     }
   </style>
 </head>
 <body>
   <h1>足利驾校习题练习</h1>
 
-  <!-- 初始页面 -->
   <div id="container">
     <h2>请选择套题</h2>
-    <div id="sheet-selection"></div>
+    <div id="sheet-selection">加载中...</div>
     <div id="info">
       <p>制作人微信：Leoyongzhe</p>
       <p>大家一起努力！</p>
       <p>欢迎大家反馈改进！</p>
       <button onclick="startMistakeReview()">错题复习</button>
       <button onclick="clearHistory()">清除历史做题记录</button>
+      <button onclick="viewConsoleLogs()">查看控制台日志</button>
     </div>
   </div>
 
-  <!-- 做题页面 -->
   <div id="quiz-container" style="display: none;">
-    <h2 id="sheet-name">当前套题：加载中...</h2>
-    <div id="question"></div>
-    <div id="image"></div>
+    <h2 id="sheet-name">加载中...</h2>
+    <div id="question">加载中...</div>
+    <div id="image" style="display:none;"></div>
     <div class="options">
       <button id="btn-correct" class="correct" onclick="selectAnswer('⭕')">⭕ 正确</button>
       <button id="btn-wrong" class="wrong" onclick="selectAnswer('❌')">❌ 错误</button>
@@ -168,7 +163,7 @@
       <button onclick="previousQuestion()">上一题</button>
       <button onclick="nextQuestion()">下一题</button>
     </div>
-    <div id="remaining-questions" style="text-align: center; margin-top: 20px;"></div> <!-- 剩余题数 -->
+    <div id="remaining-questions" style="text-align: center; margin-top: 20px;"></div>
     <div id="answer-display"></div>
     <div style="text-align: center; margin-top: 20px;">
       <button onclick="toggleAnswer()">显示/隐藏 正确答案</button>
@@ -177,7 +172,6 @@
     </div>
   </div>
 
-  <!-- 结果页面 -->
   <div id="result-container" style="display: none;">
     <h2>考试结束</h2>
     <p id="score"></p>
@@ -185,10 +179,15 @@
     <button onclick="viewMistakes()">查看错题</button>
   </div>
 
-  <!-- 错题复习页面 -->
   <div id="mistake-review-container">
     <h2>错题复习</h2>
     <div id="mistake-questions"></div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="console-logs-container">
+    <h2>控制台日志</h2>
+    <div id="console-logs-content">加载中...</div>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
@@ -201,31 +200,70 @@
     let userAnswers = [];
     let currentSheetName = "";
     let answerVisible = false;
-    let mistakeQuestions = [];
+    let mistakeQuestions = []; 
+    let logs = [];
 
-    // 从缓存加载错题
-    function loadMistakesFromCache() {
-      const mistakes = localStorage.getItem('mistakes');
-      return mistakes ? JSON.parse(mistakes) : [];
+    getClientIPAndLogAccess();
+
+    async function getClientIPAndLogAccess() {
+      const visitTime = new Date().toLocaleString();
+      const deviceInfo = navigator.userAgent;
+      let ip = "Unknown IP";
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        ip = data.ip || "Unknown IP";
+      } catch(e) {}
+
+      logs.push({
+        type: 'access',
+        time: visitTime,
+        detail: {
+          device: deviceInfo,
+          ip: ip
+        }
+      });
     }
 
-    // 缓存错题
-    function saveMistakesToCache() {
-      localStorage.setItem('mistakes', JSON.stringify(mistakeQuestions));
+    function loadMistakesFromCache() {
+      const mistakes = localStorage.getItem('mistakes');
+      return mistakes ? JSON.parse(mistakes) : {};
+    }
+
+    function saveMistakesToCache(mistakesObj) {
+      localStorage.setItem('mistakes', JSON.stringify(mistakesObj));
     }
 
     async function fetchSheetNames() {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      sheetNames = data.sheets.map(sheet => sheet.properties.title);
-      displaySheetSelection();
+      const selectionContainer = document.getElementById('sheet-selection');
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          selectionContainer.textContent = "加载套题失败，请检查网络或配置";
+          return;
+        }
+        const data = await response.json();
+        if(!data.sheets) {
+          selectionContainer.textContent = "未能获取套题，请检查Google Sheet配置";
+          return;
+        }
+        sheetNames = data.sheets.map(sheet => sheet.properties.title);
+        displaySheetSelection();
+      } catch (e) {
+        console.error(e);
+        selectionContainer.textContent = "加载套题失败，请检查配置或控制台日志";
+      }
     }
 
     function displaySheetSelection() {
       const selectionContainer = document.getElementById('sheet-selection');
       selectionContainer.innerHTML = "";
-      sheetNames.forEach(sheet => {
+      
+      // 过滤掉名为"Console"的sheet
+      const filteredSheets = sheetNames.filter(name => name !== "Console");
+
+      filteredSheets.forEach(sheet => {
         const button = document.createElement('button');
         button.textContent = sheet;
         button.onclick = () => fetchQuestions(sheet);
@@ -234,24 +272,58 @@
     }
 
     async function fetchQuestions(sheetName) {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      currentSheetName = sheetName;
-      questions = shuffle(processSheetData(data.values));
-      startQuiz();
+      const sheetNameElem = document.getElementById('sheet-name');
+      const questionElem = document.getElementById('question');
+      sheetNameElem.textContent = "加载中...";
+      questionElem.textContent = "加载中...";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          sheetNameElem.textContent = `加载套题[${sheetName}]失败`;
+          questionElem.textContent = "";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length <= 1) {
+          sheetNameElem.textContent = `套题[${sheetName}]数据为空`;
+          questionElem.textContent = "";
+          return;
+        }
+        currentSheetName = sheetName;
+        questions = shuffle(processSheetData(data.values));
+        startQuiz();
+      } catch(e) {
+        console.error(e);
+        sheetNameElem.textContent = `加载套题[${sheetName}]异常`;
+        questionElem.textContent = "";
+      }
     }
 
     function processSheetData(values) {
       return values.slice(1).map((row, idx) => {
         const qText = row[1] ? row[1].trim() : "";
-        if (!qText) {
-          console.log("发现无题目数据行（检查数据源）:", row);
-        }
         const qImage = row[2] ? row[2].trim() : "";
+        if (!qText) {
+          const time = new Date().toLocaleString();
+          const rowNumber = idx + 2;
+          const colNumber = 2;
+          logs.push({
+            type: 'error',
+            time: time,
+            detail: {
+              message: "无题目数据",
+              sheet: currentSheetName,
+              row: rowNumber,
+              col: colNumber,
+              questionData: row
+            }
+          });
+        }
         return {
           question: qText || "无题目",
-          image: qImage, // 若为空则之后不显示图片框
+          image: qImage,
           answer: row[8] === "o" ? "⭕" : "❌"
         };
       });
@@ -269,6 +341,8 @@
       currentQuestionIndex = 0;
       userAnswers = [];
       answerVisible = false;
+      mistakeQuestions = [];
+
       document.getElementById('container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'block';
       document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
@@ -277,22 +351,38 @@
 
     function loadQuestion() {
       const q = questions[currentQuestionIndex];
-      document.getElementById('question').innerText = q.question || "无题目";
-
+      const questionElem = document.getElementById('question');
       const imageContainer = document.getElementById('image');
-      // 无图片则不显示图片区域内容
+      
+      questionElem.textContent = "加载中...";
+      imageContainer.style.display='none';
+      imageContainer.innerHTML = '';
+
+      setTimeout(() => {
+        questionElem.innerText = q.question || "无题目";
+        resetButtonHighlight();
+        updateRemainingQuestions();
+      }, 200);
+
       if (q.image) {
-        imageContainer.style.display = 'flex';
-        imageContainer.innerHTML = `<img src="${q.image}" alt="题目图片">`;
+        imageContainer.style.display='flex';
+        imageContainer.innerText = "加载中...";
+        const img = new Image();
+        img.src = q.image;
+        img.onload = () => {
+          imageContainer.innerHTML = '';
+          imageContainer.appendChild(img);
+        };
+        img.onerror = () => {
+          imageContainer.innerHTML = '';
+          imageContainer.style.display='none';
+        }
       } else {
-        // 无图片则隐藏图片区域
-        imageContainer.style.display = 'none';
+        imageContainer.style.display='none';
         imageContainer.innerHTML = '';
       }
 
       document.getElementById('answer-display').innerText = "";
-      resetButtonHighlight();
-      updateRemainingQuestions();
     }
 
     function updateRemainingQuestions() {
@@ -339,40 +429,52 @@
     }
 
     function allQuestionsAnswered() {
-      // 检查是否所有题都已有回答
       return questions.every((q, i) => {
         const ans = userAnswers[i];
-        return ans === '⭕' || ans === '❌'; // 用户有回答则返回true
+        return ans === '⭕' || ans === '❌';
       });
     }
 
     function submitQuiz() {
-      // 检查是否全部回答
       if (!allQuestionsAnswered()) {
         const confirmSubmit = confirm("未完成所有题目，确定要交卷吗？");
         if (!confirmSubmit) {
-          return; // 用户取消交卷
+          return;
         }
       }
 
       let incorrectCount = 0;
-      mistakeQuestions = []; // 清空错题记录
+      let mistakesObj = loadMistakesFromCache();
+      mistakeQuestions = [];
 
       questions.forEach((q, index) => {
         const userAnswer = userAnswers[index] || "";
-        // 只有在用户有回答并且回答错误时，才计入错题
         if (userAnswer !== "" && userAnswer !== q.answer) {
           incorrectCount++;
           mistakeQuestions.push({
             question: q.question,
             image: q.image,
             answer: q.answer,
-            originalIndex: index,
             userAnswer: userAnswer
           });
+          const key = q.question + '||' + q.answer + '||' + q.image;
+          if (mistakesObj[key]) {
+            mistakesObj[key].count += 1;
+            mistakesObj[key].userAnswer = userAnswer;
+          } else {
+            mistakesObj[key] = {
+              question: q.question,
+              image: q.image,
+              answer: q.answer,
+              count: 1,
+              userAnswer: userAnswer
+            };
+          }
         }
       });
-      saveMistakesToCache(); // 缓存错题
+
+      saveMistakesToCache(mistakesObj);
+
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
       document.getElementById('score').innerText = `错题数：${incorrectCount} / ${questions.length}`;
@@ -383,15 +485,57 @@
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
       document.getElementById('mistake-review-container').style.display = 'none';
+      document.getElementById('console-logs-container').style.display='none';
     }
 
-    // 错题查看
+    // 只查看本次错题
     function viewMistakes() {
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('mistake-review-container').style.display = 'block';
       const mistakeContainer = document.getElementById('mistake-questions');
       mistakeContainer.innerHTML = '';
+
+      if (mistakeQuestions.length === 0) {
+        mistakeContainer.innerHTML = "<p>本次没有错题</p>";
+        return;
+      }
+
       mistakeQuestions.forEach((item, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.style.borderBottom = "1px solid #ccc";
+        questionDiv.style.marginBottom = "10px";
+        questionDiv.style.paddingBottom = "10px";
+
+        let imgHTML = '';
+        if (item.image) {
+          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;border-radius:5px;margin-top:5px;"></div>`;
+        }
+
+        questionDiv.innerHTML =
+        `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+         ${imgHTML}
+         <div><strong>您的错误答案：</strong>${item.userAnswer}</div>
+         <div><strong>正确答案：</strong>${item.answer}</div>`;
+        mistakeContainer.appendChild(questionDiv);
+      });
+    }
+
+    // 错题复习显示历史错题
+    function startMistakeReview() {
+      const mistakesObj = loadMistakesFromCache();
+      const keys = Object.keys(mistakesObj);
+      if (keys.length === 0) {
+        alert("没有错题记录");
+        return;
+      }
+
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('mistake-review-container').style.display = 'block';
+      const mistakeContainer = document.getElementById('mistake-questions');
+      mistakeContainer.innerHTML = '';
+
+      keys.forEach((key, index) => {
+        const item = mistakesObj[key];
         const questionDiv = document.createElement('div');
         questionDiv.style.borderBottom = "1px solid #ccc";
         questionDiv.style.marginBottom = "10px";
@@ -405,49 +549,134 @@
         questionDiv.innerHTML =
           `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
-           <div><strong>您的答案：</strong>${item.userAnswer}</div>
-           <div><strong>正确答案：</strong>${item.answer}</div>`;
+           <div><strong>您的最后错误答案：</strong>${item.userAnswer || "无记录"}</div>
+           <div><strong>正确答案：</strong>${item.answer}</div>
+           <div><strong>错误次数：</strong>${item.count}</div>`;
         mistakeContainer.appendChild(questionDiv);
       });
     }
 
-    // 错题复习开始
-    function startMistakeReview() {
-      mistakeQuestions = loadMistakesFromCache();
-      if (mistakeQuestions.length > 0) {
-        document.getElementById('container').style.display = 'none';
-        document.getElementById('mistake-review-container').style.display = 'block';
-        const mistakeContainer = document.getElementById('mistake-questions');
-        mistakeContainer.innerHTML = '';
-        mistakeQuestions.forEach((item, index) => {
-          const questionDiv = document.createElement('div');
-          questionDiv.style.borderBottom = "1px solid #ccc";
-          questionDiv.style.marginBottom = "10px";
-          questionDiv.style.paddingBottom = "10px";
-
-          let imgHTML = '';
-          if (item.image) {
-            imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;border-radius:5px;margin-top:5px;"></div>`;
-          }
-
-          questionDiv.innerHTML =
-            `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
-             ${imgHTML}
-             <div><strong>您的答案：</strong>${item.userAnswer || "无记录"}</div>
-             <div><strong>正确答案：</strong>${item.answer}</div>`;
-          mistakeContainer.appendChild(questionDiv);
-        });
-      } else {
-        alert("没有错题记录");
-      }
-    }
-
-    // 清除历史做题记录
     function clearHistory() {
       localStorage.removeItem('mistakes');
       alert("历史做题记录已清除");
     }
 
+    async function viewConsoleLogs() {
+      const password = prompt("请输入查看日志的密码：");
+      if (password === "Aa123456") {
+        try {
+          await recordLogsToSheet();
+        } catch(e) {
+          console.error("写入日志到Google Sheet失败:", e);
+        }
+        showConsoleLogsFromSheet();
+      } else {
+        alert("密码错误！");
+      }
+    }
+
+    async function recordLogsToSheet() {
+      const values = logs.map(log => {
+        if (log.type === 'access') {
+          return [
+            'access',
+            log.time || '',
+            log.detail.device || '',
+            'N/A',
+            'N/A',
+            'N/A',
+            log.detail.ip || '',
+            'N/A'
+          ];
+        } else {
+          return [
+            'error',
+            log.time || '',
+            log.detail.message || '',
+            log.detail.sheet || '',
+            log.detail.row || '',
+            log.detail.col || '',
+            'N/A',
+            JSON.stringify(log.detail.questionData || '')
+          ];
+        }
+      });
+
+      if(values.length === 0) {
+        // 无记录无需写入
+        return;
+      }
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A1:append?valueInputOption=RAW&key=${apiKey}`;
+      const body = {
+        values: values
+      };
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+      // 不严格处理响应，仅演示逻辑
+    }
+
+    async function showConsoleLogsFromSheet() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='block';
+
+      const consoleLogsContent = document.getElementById('console-logs-content');
+      consoleLogsContent.textContent = "加载中...";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A:Z?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          consoleLogsContent.textContent = "加载日志失败";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length <= 0) {
+          consoleLogsContent.textContent = "暂无日志记录";
+          return;
+        }
+
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["Type","Time","Device/Message","Sheet","Row","Col","IP","QuestionData"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.forEach((rowArr,idx) => {
+          const tr = document.createElement('tr');
+          headers.forEach((h, i) => {
+            const td = document.createElement('td');
+            td.textContent = rowArr[i] || "";
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        consoleLogsContent.innerHTML = '';
+        consoleLogsContent.appendChild(table);
+
+      } catch(e) {
+        console.error(e);
+        consoleLogsContent.textContent = "加载日志出现异常";
+      }
+    }
+
+    // 初始获取套题列表
     fetchSheetNames();
   </script>
 </body>
