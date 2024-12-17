@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>在线做题练习</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f3f4f6;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    #container {
+      padding: 20px;
+      text-align: center;
+    }
+    #quiz-container, #result-container {
+      display: none;
+      margin: 20px auto;
+      max-width: 400px;
+      text-align: center;
+    }
+    #sheet-name {
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+    #question {
+      font-size: 18px;
+      margin-bottom: 20px;
+      min-height: 50px;
+    }
+    #image {
+      margin-bottom: 20px;
+      min-height: 150px;
+    }
+    #image img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+    }
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    .correct {
+      background: linear-gradient(135deg, #007BFF, #0056b3);
+      color: white;
+      box-shadow: 0 3px 5px rgba(0, 123, 255, 0.5);
+    }
+    .wrong {
+      background: linear-gradient(135deg, #FF4D4D, #d60000);
+      color: white;
+      box-shadow: 0 3px 5px rgba(255, 77, 77, 0.5);
+    }
+    .highlight {
+      background: #f8f9fa;
+      border: 2px solid #ffc107;
+      box-shadow: 0 0 10px rgba(255, 193, 7, 0.7);
+    }
+    #next-btn, #show-answer-btn, #reset-btn {
+      background: linear-gradient(135deg, #28A745, #1e7e34);
+      color: white;
+      box-shadow: 0 3px 5px rgba(40, 167, 69, 0.5);
+    }
+    #next-btn:hover, #show-answer-btn:hover, #reset-btn:hover {
+      transform: translateY(-3px);
+    }
+    #answer-display {
+      font-size: 18px;
+      font-weight: bold;
+      color: #FF4D4D;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>在线做题练习</h1>
+
+  <!-- 初始页面：选择套题 -->
+  <div id="container">
+    <h2>请选择套题</h2>
+    <div id="sheet-selection"></div>
+  </div>
+
+  <!-- 做题页面 -->
+  <div id="quiz-container">
+    <div id="sheet-name"></div> <!-- 当前套题名称 -->
+    <div id="question"></div>
+    <div id="image"></div>
+    <div class="options">
+      <button id="btn-correct" class="correct" onclick="selectAnswer('⭕')">⭕ 正确</button>
+      <button id="btn-wrong" class="wrong" onclick="selectAnswer('❌')">❌ 错误</button>
+    </div>
+    <button id="show-answer-btn" onclick="showCorrectAnswer()">显示正确答案</button>
+    <button id="next-btn" onclick="nextQuestion()">下一题</button>
+    <button id="reset-btn" onclick="resetQuiz()">重新选题</button>
+    <button onclick="submitQuiz()">交卷</button>
+    <div id="answer-display"></div>
+  </div>
+
+  <!-- 结果页面 -->
+  <div id="result-container">
+    <h2>考试结束</h2>
+    <p id="score"></p>
+    <button onclick="resetQuiz()">再来一套</button>
+  </div>
+
+  <script>
+    const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw";
+    const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
+    let sheetNames = [];
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let currentSheetName = "";
+
+    async function fetchSheetNames() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      sheetNames = data.sheets.map(sheet => sheet.properties.title);
+      displaySheetSelection();
+    }
+
+    function displaySheetSelection() {
+      const selectionContainer = document.getElementById('sheet-selection');
+      selectionContainer.innerHTML = "";
+      sheetNames.forEach(sheet => {
+        const button = document.createElement('button');
+        button.textContent = sheet;
+        button.onclick = () => fetchQuestions(sheet);
+        selectionContainer.appendChild(button);
+      });
+    }
+
+    async function fetchQuestions(sheetName) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      currentSheetName = sheetName;
+      questions = shuffle(processSheetData(data.values));
+      startQuiz();
+    }
+
+    function processSheetData(values) {
+      return values.slice(1).map(row => ({
+        question: row[1],
+        image: row[2] || "",
+        answer: row[8] === "o" ? "⭕" : "❌"
+      }));
+    }
+
+    function shuffle(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+
+    function startQuiz() {
+      currentQuestionIndex = 0;
+      userAnswers = [];
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      const q = questions[currentQuestionIndex];
+      document.getElementById('question').innerText = q.question || "无题目";
+      document.getElementById('image').innerHTML = q.image ? `<img src="${q.image}" alt="题目图片">` : '<div style="height:150px;"></div>';
+      document.getElementById('answer-display').innerText = "";
+      resetButtonHighlight();
+    }
+
+    function selectAnswer(answer) {
+      userAnswers[currentQuestionIndex] = answer;
+      resetButtonHighlight();
+      if (answer === '⭕') document.getElementById('btn-correct').classList.add('highlight');
+      if (answer === '❌') document.getElementById('btn-wrong').classList.add('highlight');
+    }
+
+    function resetButtonHighlight() {
+      document.getElementById('btn-correct').classList.remove('highlight');
+      document.getElementById('btn-wrong').classList.remove('highlight');
+    }
+
+    function showCorrectAnswer() {
+      const correctAnswer = questions[currentQuestionIndex].answer;
+      document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}`;
+    }
+
+    function nextQuestion() {
+      currentQuestionIndex++;
+      if (currentQuestionIndex < questions.length) {
+        loadQuestion();
+      } else {
+        alert('已到最后一题，请交卷。');
+      }
+    }
+
+    function submitQuiz() {
+      let incorrectCount = 0;
+      questions.forEach((q, index) => {
+        const userAnswer = userAnswers[index] || "";
+        if (userAnswer !== q.answer) incorrectCount++;
+      });
+
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'block';
+      document.getElementById('score').innerText = `错题数：${incorrectCount} / ${questions.length}`;
+    }
+
+    function resetQuiz() {
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('container').style.display = 'block';
+    }
+
+    fetchSheetNames();
+  </script>
+</body>
+</html>
