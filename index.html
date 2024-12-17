@@ -127,6 +127,16 @@
       color: #555;
       font-size: 14px;
     }
+
+    /* 错题复习页面 */
+    #mistake-review-container {
+      display: none;
+      max-width: 700px;
+      margin: 20px auto;
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 20px;
+    }
   </style>
 </head>
 <body>
@@ -140,6 +150,8 @@
       <p>制作人微信：Leoyongzhe</p>
       <p>大家一起努力！</p>
       <p>欢迎大家反馈改进！</p>
+      <button onclick="startMistakeReview()">错题复习</button>
+      <button onclick="clearHistory()">清除历史做题记录</button>
     </div>
   </div>
 
@@ -156,6 +168,7 @@
       <button onclick="previousQuestion()">上一题</button>
       <button onclick="nextQuestion()">下一题</button>
     </div>
+    <div id="remaining-questions" style="text-align: center; margin-top: 20px;"></div> <!-- 剩余题数 -->
     <div id="answer-display"></div>
     <div style="text-align: center; margin-top: 20px;">
       <button onclick="toggleAnswer()">显示/隐藏 正确答案</button>
@@ -169,6 +182,14 @@
     <h2>考试结束</h2>
     <p id="score"></p>
     <button onclick="resetQuiz()">再来一套</button>
+    <button onclick="viewMistakes()">查看错题</button>
+  </div>
+
+  <!-- 错题复习页面 -->
+  <div id="mistake-review-container">
+    <h2>错题复习</h2>
+    <div id="mistake-questions"></div>
+    <button onclick="resetQuiz()">返回首页</button>
   </div>
 
   <script>
@@ -180,6 +201,18 @@
     let userAnswers = [];
     let currentSheetName = "";
     let answerVisible = false;
+    let mistakeQuestions = [];
+
+    // 从缓存加载错题
+    function loadMistakesFromCache() {
+      const mistakes = localStorage.getItem('mistakes');
+      return mistakes ? JSON.parse(mistakes) : [];
+    }
+
+    // 缓存错题
+    function saveMistakesToCache() {
+      localStorage.setItem('mistakes', JSON.stringify(mistakeQuestions));
+    }
 
     async function fetchSheetNames() {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
@@ -241,6 +274,12 @@
       document.getElementById('image').innerHTML = q.image ? `<img src="${q.image}" alt="题目图片">` : '<div style="height:150px;"></div>';
       document.getElementById('answer-display').innerText = "";
       resetButtonHighlight();
+      updateRemainingQuestions();
+    }
+
+    function updateRemainingQuestions() {
+      const remaining = questions.length - currentQuestionIndex - 1;
+      document.getElementById('remaining-questions').innerText = `剩余题数：${remaining}`;
     }
 
     function selectAnswer(answer) {
@@ -283,10 +322,15 @@
 
     function submitQuiz() {
       let incorrectCount = 0;
+      mistakeQuestions = []; // 清空错题记录
       questions.forEach((q, index) => {
         const userAnswer = userAnswers[index] || "";
-        if (userAnswer !== q.answer) incorrectCount++;
+        if (userAnswer !== q.answer) {
+          incorrectCount++;
+          mistakeQuestions.push(q); // 添加错题
+        }
       });
+      saveMistakesToCache(); // 缓存错题
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
       document.getElementById('score').innerText = `错题数：${incorrectCount} / ${questions.length}`;
@@ -296,6 +340,38 @@
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
+    }
+
+    // 错题复习页面
+    function viewMistakes() {
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('mistake-review-container').style.display = 'block';
+      const mistakeContainer = document.getElementById('mistake-questions');
+      mistakeContainer.innerHTML = '';
+      mistakeQuestions.forEach((q, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.innerHTML = 
+          `<div><strong>题目 ${index + 1}：</strong>${q.question}</div>
+          <div><strong>您的答案：</strong>${userAnswers[index]}</div>
+          <div><strong>正确答案：</strong>${q.answer}</div>`;
+        mistakeContainer.appendChild(questionDiv);
+      });
+    }
+
+    // 错题复习开始
+    function startMistakeReview() {
+      mistakeQuestions = loadMistakesFromCache();
+      if (mistakeQuestions.length > 0) {
+        viewMistakes();
+      } else {
+        alert("没有错题记录");
+      }
+    }
+
+    // 清除历史做题记录
+    function clearHistory() {
+      localStorage.removeItem('mistakes');
+      alert("历史做题记录已清除");
     }
 
     fetchSheetNames();
