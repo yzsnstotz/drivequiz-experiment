@@ -29,7 +29,6 @@
       font-size: 20px;
     }
 
-    /* 主容器设置上下间距，使得内容在手机中不紧贴顶部或底部 */
     #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container {
       margin: 30px auto;
       max-width: 600px;
@@ -40,7 +39,55 @@
       padding: 20px;
     }
 
-    /* 问题区域增加间距和柔和背景 */
+    /* 调整初始页面套题按钮布局 */
+    #sheet-selection {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #sheet-selection button {
+      flex: 0 1 auto;
+      padding: 10px 15px;
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+    #sheet-selection button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    #info {
+      text-align: center;
+      margin-top: 20px;
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* 下方三个操作按钮也分开一下 */
+    #info button {
+      margin: 10px 5px 0 5px;
+      padding: 10px 15px;
+      background: #4DAFFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    #info button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
     #question {
       font-size: 18px;
       margin: 20px 0;
@@ -52,7 +99,6 @@
       line-height: 1.4;
     }
 
-    /* 图片区域固定高度与自适应 */
     #image {
       margin-bottom: 20px;
       border: 2px solid #ccc;
@@ -70,7 +116,6 @@
       object-fit: contain;
     }
 
-    /* 按钮样式与间距 */
     .options, .controls {
       display: flex;
       justify-content: space-around;
@@ -112,7 +157,6 @@
       background: #FF8C8C;
     }
 
-    /* 答案显示区域 */
     #answer-display {
       font-size: 18px;
       font-weight: bold;
@@ -121,13 +165,11 @@
       text-align: center;
     }
 
-    /* 初始页面信息 */
-    #info {
-      text-align: center;
+    #remaining-questions {
+      text-align: center; 
       margin-top: 20px;
-      color: #555;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 16px;
+      color: #333;
     }
 
     /* 列表页面(错题复习、当前错题查看)中题目信息的样式 */
@@ -140,21 +182,15 @@
     #mistake-questions img, #current-mistakes-list img {
       margin-top: 10px;
       border-radius: 5px;
+      max-height:150px;
+      object-fit:contain;
+      max-width:100%;
     }
 
-    /* 调整按钮在列表底部的间距 */
     #mistake-review-container button, #current-mistakes-container button, #console-logs-container button {
       margin-top: 10px;
     }
 
-    #remaining-questions {
-      text-align: center; 
-      margin-top: 20px;
-      font-size: 16px;
-      color: #333;
-    }
-
-    /* 日志显示表格样式 */
     #console-logs-content table {
       width:100%;
       border-collapse: collapse;
@@ -169,7 +205,6 @@
     #console-logs-content th {
       background: #f9f9f9;
     }
-
   </style>
 </head>
 <body>
@@ -236,7 +271,6 @@
   </div>
 
   <script>
-    /* 下面的JS逻辑与之前版本相同，不在此重复粘贴注释，只说明逻辑保持不变 */
     const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw";
     const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
     let sheetNames = [];
@@ -327,13 +361,15 @@
           return;
         }
         const data = await response.json();
-        if(!data.values || data.values.length <= 1) {
+        if(!data.values || data.values.length < 1) {
+          // 不需要slice(1)，因为现在数据从第一行开始都是题目行，无表头
           sheetNameElem.textContent = `套题[${sheetName}]数据为空`;
           questionElem.textContent = "";
           return;
         }
         currentSheetName = sheetName;
-        questions = shuffle(processSheetData(data.values));
+        questions = shuffle(processSheetData(data.values)); 
+        // 不再使用 slice(1)，直接使用 data.values，因为没有表头行
         startQuiz();
       } catch(e) {
         console.error(e);
@@ -343,13 +379,14 @@
     }
 
     function processSheetData(values) {
-      return values.slice(1).map((row, idx) => {
+      // 直接从 values[0] 开始作为第一题
+      return values.map((row, idx) => {
         let qText = row[1] ? row[1] : "";
         qText = qText.replace(/\u200B/g, '').trim();
 
         if (!qText) {
           const time = new Date().toLocaleString();
-          const rowNumber = idx + 2;
+          const rowNumber = idx + 1; // rowNumber对应实际行号
           const colNumber = 2;
           logs.push({
             type: 'error',
@@ -375,7 +412,7 @@
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(Math.random()*(i+1));
         [array[i], array[j]] = [array[j], array[i]];
       }
       return array;
@@ -721,7 +758,6 @@
       }
     }
 
-    // 初始获取套题列表
     fetchSheetNames();
   </script>
 </body>
