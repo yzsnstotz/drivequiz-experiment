@@ -8,25 +8,30 @@
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 0;
+      padding: 10px;
       background-color: #e9f5ff;
+      box-sizing: border-box;
     }
+
     h1 {
       text-align: center;
       color: #fff;
       background-color: #007BFF;
-      padding: 10px 0;
+      padding: 15px 0;
       margin: 0;
       font-size: 24px;
     }
+
     h2 {
       text-align: center;
       color: #333;
-      margin: 10px 0;
+      margin: 15px 0;
+      font-size: 20px;
     }
 
+    /* 主容器设置上下间距，使得内容在手机中不紧贴顶部或底部 */
     #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container {
-      margin: 20px auto;
+      margin: 30px auto;
       max-width: 600px;
       border: 2px solid #ddd;
       border-radius: 10px;
@@ -35,16 +40,19 @@
       padding: 20px;
     }
 
+    /* 问题区域增加间距和柔和背景 */
     #question {
-      font-size: 20px;
+      font-size: 18px;
       margin: 20px 0;
       padding: 15px;
       border-radius: 8px;
       background-color: #fdf8e4;
       text-align: center;
       min-height: 50px; 
+      line-height: 1.4;
     }
 
+    /* 图片区域固定高度与自适应 */
     #image {
       margin-bottom: 20px;
       border: 2px solid #ccc;
@@ -56,20 +64,33 @@
       min-height: 50px; 
       padding: 10px;
     }
+    #image img {
+      max-width: 100%;
+      max-height: 150px;
+      object-fit: contain;
+    }
 
-    .options {
+    /* 按钮样式与间距 */
+    .options, .controls {
       display: flex;
       justify-content: space-around;
+      margin-top: 15px;
+    }
+    .options button, .controls button {
+      flex: 1;
+      margin: 0 5px;
     }
 
     button {
-      padding: 10px 20px;
+      padding: 10px 15px;
       border: none;
       border-radius: 5px;
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.3s ease-in-out;
+      text-align: center;
+      white-space: nowrap;
     }
     button:hover {
       transform: translateY(-3px);
@@ -91,15 +112,7 @@
       background: #FF8C8C;
     }
 
-    .controls {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 20px;
-    }
-    .controls button {
-      width: 48%;
-    }
-
+    /* 答案显示区域 */
     #answer-display {
       font-size: 18px;
       font-weight: bold;
@@ -108,35 +121,55 @@
       text-align: center;
     }
 
+    /* 初始页面信息 */
     #info {
       text-align: center;
       margin-top: 20px;
       color: #555;
       font-size: 14px;
+      line-height: 1.6;
     }
 
-    #mistake-review-container {
-      display: none;
+    /* 列表页面(错题复习、当前错题查看)中题目信息的样式 */
+    #mistake-questions > div, #current-mistakes-list > div {
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      line-height: 1.4;
+    }
+    #mistake-questions img, #current-mistakes-list img {
+      margin-top: 10px;
+      border-radius: 5px;
     }
 
-    #current-mistakes-container {
-      display: none;
+    /* 调整按钮在列表底部的间距 */
+    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button {
+      margin-top: 10px;
     }
 
-    #console-logs-container {
-      display: none;
+    #remaining-questions {
+      text-align: center; 
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
     }
 
-    table {
+    /* 日志显示表格样式 */
+    #console-logs-content table {
       width:100%;
       border-collapse: collapse;
       margin-top:20px;
     }
-    table,th,td {
+    #console-logs-content table, #console-logs-content th, #console-logs-content td {
       border:1px solid #ccc;
       padding:5px;
       text-align:left;
+      font-size:14px;
     }
+    #console-logs-content th {
+      background: #f9f9f9;
+    }
+
   </style>
 </head>
 <body>
@@ -167,7 +200,7 @@
       <button onclick="previousQuestion()">上一题</button>
       <button onclick="nextQuestion()">下一题</button>
     </div>
-    <div id="remaining-questions" style="text-align: center; margin-top: 20px;"></div>
+    <div id="remaining-questions"></div>
     <div id="answer-display"></div>
     <div style="text-align: center; margin-top: 20px;">
       <button onclick="toggleAnswer()">显示/隐藏 正确答案</button>
@@ -180,34 +213,30 @@
     <h2>考试结束</h2>
     <p id="score"></p>
     <button onclick="resetQuiz()">再来一套</button>
-    <!-- 改名：由“查看错题”改为“查看本次错题” -->
     <button onclick="viewMistakes()">查看本次错题</button>
   </div>
 
-  <!-- 本次错题页面 -->
-  <div id="current-mistakes-container">
+  <div id="current-mistakes-container" style="display:none;">
     <h2>本次错题</h2>
     <div id="current-mistakes-list"></div>
-    <!-- 新增按钮，进入错题复习 -->
     <button onclick="startMistakeReview()">复习错题</button>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
-  <!-- 历史错题复习页面 -->
-  <div id="mistake-review-container">
+  <div id="mistake-review-container" style="display:none;">
     <h2>错题复习</h2>
     <div id="mistake-questions"></div>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
-  <!-- 控制台日志查看界面 -->
-  <div id="console-logs-container">
+  <div id="console-logs-container" style="display:none;">
     <h2>控制台日志</h2>
     <div id="console-logs-content">加载中...</div>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
   <script>
+    /* 下面的JS逻辑与之前版本相同，不在此重复粘贴注释，只说明逻辑保持不变 */
     const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw";
     const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
     let sheetNames = [];
@@ -264,7 +293,7 @@
           selectionContainer.textContent = "未能获取套题，请检查Google Sheet配置";
           return;
         }
-        sheetNames = data.sheets.map(sheet => sheet.properties.title);
+        sheetNames = data.sheets.map(sheet => sheet.properties.title).filter(name => name !== "Console");
         displaySheetSelection();
       } catch (e) {
         console.error(e);
@@ -275,9 +304,7 @@
     function displaySheetSelection() {
       const selectionContainer = document.getElementById('sheet-selection');
       selectionContainer.innerHTML = "";
-      // 过滤掉名为"Console"的sheet
-      const filteredSheets = sheetNames.filter(name => name !== "Console");
-      filteredSheets.forEach(sheet => {
+      sheetNames.forEach(sheet => {
         const button = document.createElement('button');
         button.textContent = sheet;
         button.onclick = () => fetchQuestions(sheet);
@@ -317,8 +344,9 @@
 
     function processSheetData(values) {
       return values.slice(1).map((row, idx) => {
-        const qText = row[1] ? row[1].trim() : "";
-        const qImage = row[2] ? row[2].trim() : "";
+        let qText = row[1] ? row[1] : "";
+        qText = qText.replace(/\u200B/g, '').trim();
+
         if (!qText) {
           const time = new Date().toLocaleString();
           const rowNumber = idx + 2;
@@ -334,7 +362,9 @@
               questionData: row
             }
           });
+          console.log(`无题目数据行: Sheet=${currentSheetName}, Row=${rowNumber}, Col=${colNumber}, 原始数据:`, row);
         }
+        const qImage = row[2] ? row[2].trim() : "";
         return {
           question: qText || "无题目",
           image: qImage,
@@ -373,7 +403,7 @@
       imageContainer.innerHTML = '';
 
       setTimeout(() => {
-        questionElem.innerText = q.question || "无题目";
+        questionElem.innerText = q.question;
         resetButtonHighlight();
         updateRemainingQuestions();
       }, 200);
@@ -388,6 +418,7 @@
           imageContainer.appendChild(img);
         };
         img.onerror = () => {
+          console.log("图片加载失败：", q.image);
           imageContainer.innerHTML = '';
           imageContainer.style.display='none';
         }
@@ -498,12 +529,11 @@
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
-      document.getElementById('mistake-review-container').style.display = 'none';
-      document.getElementById('current-mistakes-container').style.display = 'none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
       document.getElementById('console-logs-container').style.display='none';
     }
 
-    // 查看本次错题
     function viewMistakes() {
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('current-mistakes-container').style.display = 'block';
@@ -517,13 +547,11 @@
 
       mistakeQuestions.forEach((item, index) => {
         const questionDiv = document.createElement('div');
-        questionDiv.style.borderBottom = "1px solid #ccc";
-        questionDiv.style.marginBottom = "10px";
         questionDiv.style.paddingBottom = "10px";
 
         let imgHTML = '';
         if (item.image) {
-          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;border-radius:5px;margin-top:5px;"></div>`;
+          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
         }
 
         questionDiv.innerHTML =
@@ -535,7 +563,6 @@
       });
     }
 
-    // 错题复习(历史错题)
     function startMistakeReview() {
       const mistakesObj = loadMistakesFromCache();
       const keys = Object.keys(mistakesObj);
@@ -555,17 +582,14 @@
 
       keys.forEach((key, index) => {
         const item = mistakesObj[key];
-        // 使用默认值防止undefined
         const uAnswer = item.userAnswer || "无记录";
         const cCount = (item.count !== undefined) ? item.count : "无记录";
+
         const questionDiv = document.createElement('div');
-        questionDiv.style.borderBottom = "1px solid #ccc";
-        questionDiv.style.marginBottom = "10px";
-        questionDiv.style.paddingBottom = "10px";
 
         let imgHTML = '';
         if (item.image) {
-          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;border-radius:5px;margin-top:5px;"></div>`;
+          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
         }
 
         questionDiv.innerHTML =
@@ -638,7 +662,6 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(body)
       });
-      // 不严格处理响应，只演示逻辑
     }
 
     async function showConsoleLogsFromSheet() {
@@ -698,6 +721,7 @@
       }
     }
 
+    // 初始获取套题列表
     fetchSheetNames();
   </script>
 </body>
