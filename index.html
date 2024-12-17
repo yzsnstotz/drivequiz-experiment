@@ -3,50 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>在线做题练习</title>
+  <title>足利驾校习题练习</title>
   <style>
+    /* 全局样式 */
     body {
       font-family: Arial, sans-serif;
       margin: 0;
       padding: 0;
-      background-color: #f3f4f6;
+      background-color: #e9f5ff; /* 整体背景色：淡蓝色 */
     }
-    h1, h2 {
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      background-color: #007BFF; /* 标题背景色 */
+      padding: 10px 0;
+      margin: 0;
+      font-size: 24px;
+    }
+
+    h2 {
       text-align: center;
       color: #333;
+      margin: 10px 0;
     }
-    #container {
-      padding: 20px;
-      text-align: center;
-    }
-    #quiz-container, #result-container {
-      display: none;
+
+    /* 主容器 */
+    #container, #quiz-container, #result-container {
       margin: 20px auto;
-      max-width: 400px;
+      max-width: 600px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    /* 问题区域 */
+    #question {
+      font-size: 20px;
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #fdf8e4; /* 题目文本区背景色：淡黄色 */
       text-align: center;
     }
-    #sheet-name {
-      font-size: 16px;
-      color: #555;
-      margin-bottom: 10px;
-    }
-    #question {
-      font-size: 18px;
-      margin-bottom: 20px;
-      min-height: 50px;
-    }
+
+    /* 图片区域 */
     #image {
       margin-bottom: 20px;
       min-height: 150px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background-color: #f0f8ff; /* 图片区域背景色：淡蓝色 */
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     #image img {
       max-width: 100%;
-      height: auto;
-      display: block;
-      margin: 0 auto;
+      max-height: 150px;
+      border-radius: 5px;
     }
+
+    /* 按钮样式 */
+    .options {
+      display: flex;
+      justify-content: space-around;
+    }
+
     button {
-      margin: 10px;
       padding: 10px 20px;
       border: none;
       border-radius: 5px;
@@ -59,64 +85,87 @@
       transform: translateY(-3px);
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     }
+
     .correct {
-      background: linear-gradient(135deg, #007BFF, #0056b3);
-      color: white;
-      box-shadow: 0 3px 5px rgba(0, 123, 255, 0.5);
+      background: #007BFF;
+      color: #fff;
+    }
+    .correct.highlight {
+      background: #4DAFFF; /* 高亮色 */
     }
     .wrong {
-      background: linear-gradient(135deg, #FF4D4D, #d60000);
-      color: white;
-      box-shadow: 0 3px 5px rgba(255, 77, 77, 0.5);
+      background: #FF4D4D;
+      color: #fff;
     }
-    .highlight {
-      background: #f8f9fa;
-      border: 2px solid #ffc107;
-      box-shadow: 0 0 10px rgba(255, 193, 7, 0.7);
+    .wrong.highlight {
+      background: #FF8C8C; /* 高亮色 */
     }
-    #next-btn, #show-answer-btn, #reset-btn {
-      background: linear-gradient(135deg, #28A745, #1e7e34);
-      color: white;
-      box-shadow: 0 3px 5px rgba(40, 167, 69, 0.5);
+
+    /* 控制按钮布局 */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
     }
-    #next-btn:hover, #show-answer-btn:hover, #reset-btn:hover {
-      transform: translateY(-3px);
+    .controls button {
+      width: 48%;
     }
+
+    /* 答案显示 */
     #answer-display {
       font-size: 18px;
       font-weight: bold;
       color: #FF4D4D;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* 初始页面信息 */
+    #info {
+      text-align: center;
       margin-top: 20px;
+      color: #555;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
-  <h1>在线做题练习</h1>
+  <h1>足利驾校习题练习</h1>
 
-  <!-- 初始页面：选择套题 -->
+  <!-- 初始页面 -->
   <div id="container">
     <h2>请选择套题</h2>
     <div id="sheet-selection"></div>
+    <div id="info">
+      <p>制作人微信：Leoyongzhe</p>
+      <p>大家一起努力！</p>
+      <p>欢迎大家反馈改进！</p>
+    </div>
   </div>
 
   <!-- 做题页面 -->
-  <div id="quiz-container">
-    <div id="sheet-name"></div> <!-- 当前套题名称 -->
+  <div id="quiz-container" style="display: none;">
+    <h2 id="sheet-name">当前套题：加载中...</h2>
     <div id="question"></div>
     <div id="image"></div>
     <div class="options">
       <button id="btn-correct" class="correct" onclick="selectAnswer('⭕')">⭕ 正确</button>
       <button id="btn-wrong" class="wrong" onclick="selectAnswer('❌')">❌ 错误</button>
     </div>
-    <button id="show-answer-btn" onclick="showCorrectAnswer()">显示正确答案</button>
-    <button id="next-btn" onclick="nextQuestion()">下一题</button>
-    <button id="reset-btn" onclick="resetQuiz()">重新选题</button>
-    <button onclick="submitQuiz()">交卷</button>
+    <div class="controls">
+      <button onclick="previousQuestion()">上一题</button>
+      <button onclick="nextQuestion()">下一题</button>
+    </div>
     <div id="answer-display"></div>
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="toggleAnswer()">显示/隐藏 正确答案</button>
+      <button onclick="resetQuiz()">重新选题</button>
+      <button onclick="submitQuiz()">交卷</button>
+    </div>
   </div>
 
   <!-- 结果页面 -->
-  <div id="result-container">
+  <div id="result-container" style="display: none;">
     <h2>考试结束</h2>
     <p id="score"></p>
     <button onclick="resetQuiz()">再来一套</button>
@@ -130,6 +179,7 @@
     let currentQuestionIndex = 0;
     let userAnswers = [];
     let currentSheetName = "";
+    let answerVisible = false;
 
     async function fetchSheetNames() {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
@@ -168,12 +218,17 @@
     }
 
     function shuffle(array) {
-      return array.sort(() => Math.random() - 0.5);
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
     }
 
     function startQuiz() {
       currentQuestionIndex = 0;
       userAnswers = [];
+      answerVisible = false;
       document.getElementById('container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'block';
       document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
@@ -200,17 +255,29 @@
       document.getElementById('btn-wrong').classList.remove('highlight');
     }
 
-    function showCorrectAnswer() {
+    function toggleAnswer() {
       const correctAnswer = questions[currentQuestionIndex].answer;
-      document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}`;
+      if (answerVisible) {
+        document.getElementById('answer-display').innerText = "";
+      } else {
+        document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}`;
+      }
+      answerVisible = !answerVisible;
     }
 
     function nextQuestion() {
-      currentQuestionIndex++;
-      if (currentQuestionIndex < questions.length) {
+      if (currentQuestionIndex < questions.length - 1) {
+        currentQuestionIndex++;
         loadQuestion();
       } else {
         alert('已到最后一题，请交卷。');
+      }
+    }
+
+    function previousQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion();
       }
     }
 
@@ -220,15 +287,14 @@
         const userAnswer = userAnswers[index] || "";
         if (userAnswer !== q.answer) incorrectCount++;
       });
-
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
       document.getElementById('score').innerText = `错题数：${incorrectCount} / ${questions.length}`;
     }
 
     function resetQuiz() {
-      document.getElementById('result-container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
     }
 
