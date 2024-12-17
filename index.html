@@ -25,7 +25,7 @@
       margin: 10px 0;
     }
 
-    #container, #quiz-container, #result-container, #mistake-review-container, #console-logs-container {
+    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container {
       margin: 20px auto;
       max-width: 600px;
       border: 2px solid #ddd;
@@ -119,6 +119,10 @@
       display: none;
     }
 
+    #current-mistakes-container {
+      display: none;
+    }
+
     #console-logs-container {
       display: none;
     }
@@ -176,15 +180,27 @@
     <h2>考试结束</h2>
     <p id="score"></p>
     <button onclick="resetQuiz()">再来一套</button>
-    <button onclick="viewMistakes()">查看错题</button>
+    <!-- 改名：由“查看错题”改为“查看本次错题” -->
+    <button onclick="viewMistakes()">查看本次错题</button>
   </div>
 
+  <!-- 本次错题页面 -->
+  <div id="current-mistakes-container">
+    <h2>本次错题</h2>
+    <div id="current-mistakes-list"></div>
+    <!-- 新增按钮，进入错题复习 -->
+    <button onclick="startMistakeReview()">复习错题</button>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <!-- 历史错题复习页面 -->
   <div id="mistake-review-container">
     <h2>错题复习</h2>
     <div id="mistake-questions"></div>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
+  <!-- 控制台日志查看界面 -->
   <div id="console-logs-container">
     <h2>控制台日志</h2>
     <div id="console-logs-content">加载中...</div>
@@ -259,10 +275,8 @@
     function displaySheetSelection() {
       const selectionContainer = document.getElementById('sheet-selection');
       selectionContainer.innerHTML = "";
-      
       // 过滤掉名为"Console"的sheet
       const filteredSheets = sheetNames.filter(name => name !== "Console");
-
       filteredSheets.forEach(sheet => {
         const button = document.createElement('button');
         button.textContent = sheet;
@@ -485,14 +499,15 @@
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
       document.getElementById('mistake-review-container').style.display = 'none';
+      document.getElementById('current-mistakes-container').style.display = 'none';
       document.getElementById('console-logs-container').style.display='none';
     }
 
-    // 只查看本次错题
+    // 查看本次错题
     function viewMistakes() {
       document.getElementById('result-container').style.display = 'none';
-      document.getElementById('mistake-review-container').style.display = 'block';
-      const mistakeContainer = document.getElementById('mistake-questions');
+      document.getElementById('current-mistakes-container').style.display = 'block';
+      const mistakeContainer = document.getElementById('current-mistakes-list');
       mistakeContainer.innerHTML = '';
 
       if (mistakeQuestions.length === 0) {
@@ -520,7 +535,7 @@
       });
     }
 
-    // 错题复习显示历史错题
+    // 错题复习(历史错题)
     function startMistakeReview() {
       const mistakesObj = loadMistakesFromCache();
       const keys = Object.keys(mistakesObj);
@@ -530,12 +545,19 @@
       }
 
       document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('current-mistakes-container').style.display = 'none';
       document.getElementById('mistake-review-container').style.display = 'block';
+
       const mistakeContainer = document.getElementById('mistake-questions');
       mistakeContainer.innerHTML = '';
 
       keys.forEach((key, index) => {
         const item = mistakesObj[key];
+        // 使用默认值防止undefined
+        const uAnswer = item.userAnswer || "无记录";
+        const cCount = (item.count !== undefined) ? item.count : "无记录";
         const questionDiv = document.createElement('div');
         questionDiv.style.borderBottom = "1px solid #ccc";
         questionDiv.style.marginBottom = "10px";
@@ -549,9 +571,9 @@
         questionDiv.innerHTML =
           `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
-           <div><strong>您的最后错误答案：</strong>${item.userAnswer || "无记录"}</div>
+           <div><strong>您的最后错误答案：</strong>${uAnswer}</div>
            <div><strong>正确答案：</strong>${item.answer}</div>
-           <div><strong>错误次数：</strong>${item.count}</div>`;
+           <div><strong>错误次数：</strong>${cCount}</div>`;
         mistakeContainer.appendChild(questionDiv);
       });
     }
@@ -603,7 +625,6 @@
       });
 
       if(values.length === 0) {
-        // 无记录无需写入
         return;
       }
 
@@ -617,7 +638,7 @@
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(body)
       });
-      // 不严格处理响应，仅演示逻辑
+      // 不严格处理响应，只演示逻辑
     }
 
     async function showConsoleLogsFromSheet() {
@@ -625,6 +646,7 @@
       document.getElementById('quiz-container').style.display='none';
       document.getElementById('result-container').style.display='none';
       document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
       document.getElementById('console-logs-container').style.display='block';
 
       const consoleLogsContent = document.getElementById('console-logs-content');
@@ -656,7 +678,7 @@
         table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
-        data.values.forEach((rowArr,idx) => {
+        data.values.forEach((rowArr) => {
           const tr = document.createElement('tr');
           headers.forEach((h, i) => {
             const td = document.createElement('td');
@@ -676,7 +698,6 @@
       }
     }
 
-    // 初始获取套题列表
     fetchSheetNames();
   </script>
 </body>
