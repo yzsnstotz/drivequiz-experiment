@@ -29,7 +29,7 @@
       font-size: 20px;
     }
 
-    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container {
+    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container, #update-logs-container {
       margin: 30px auto;
       max-width: 600px;
       border: 2px solid #ddd;
@@ -39,7 +39,6 @@
       padding: 20px;
     }
 
-    /* 初始页面按钮布局 */
     #sheet-selection {
       display: flex;
       flex-wrap: wrap;
@@ -87,19 +86,28 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
 
-    /* 增加随机题序选项样式 */
+    /* 随机题序选项更醒目 */
     #random-option {
       text-align: center;
-      margin-top: 10px;
+      margin-top: 20px;
+      margin-bottom:20px;
       color: #333;
-      font-size: 14px;
+      font-size: 18px;
+      font-weight: bold;
     }
     #random-option label {
+      display: inline-block;
       cursor: pointer;
+      padding:10px 20px;
+      border:2px solid #007BFF;
+      border-radius:5px;
+      background:#fff;
     }
     #random-option input[type="checkbox"] {
-      margin-right: 5px;
-      vertical-align: middle;
+      width:24px;
+      height:24px;
+      margin-right:10px;
+      vertical-align:middle;
     }
 
     #question {
@@ -186,7 +194,6 @@
       color: #333;
     }
 
-    /* 列表页面(错题复习、本次错题)中题目信息的样式 */
     #mistake-questions > div, #current-mistakes-list > div {
       border-bottom: 1px solid #ccc;
       margin-bottom: 15px;
@@ -201,7 +208,7 @@
       max-width:100%;
     }
 
-    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button {
+    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button, #update-logs-container button {
       margin-top: 10px;
     }
 
@@ -219,6 +226,14 @@
     #console-logs-content th {
       background: #f9f9f9;
     }
+
+    #update-logs-container {
+      display:none;
+    }
+    #update-logs-list {
+      font-size:14px;
+      line-height:1.6;
+    }
   </style>
 </head>
 <body>
@@ -226,7 +241,6 @@
 
   <div id="container">
     <h2>请选择套题</h2>
-    <!-- 初始页面增加随机题序选项 -->
     <div id="random-option">
       <label>
         <input type="checkbox" id="random-checkbox"> 随机题序
@@ -239,8 +253,10 @@
       <p>大家一起努力！</p>
       <p>欢迎大家反馈改进！</p>
       <button onclick="startMistakeReview()">错题复习</button>
-      <button onclick="clearHistory()">清除历史做题记录</button>
+      <button onclick="clearAllHistory()">清除历史</button>
       <button onclick="viewConsoleLogs()">查看控制台日志</button>
+      <button onclick="showUpdateLogs()">更新日志</button>
+      <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">继续考试</button>
     </div>
   </div>
 
@@ -260,7 +276,7 @@
     <div id="answer-display"></div>
     <div style="text-align: center; margin-top: 20px;">
       <button onclick="toggleAnswer()">显示/隐藏 正确答案</button>
-      <button onclick="resetQuiz()">重新选题</button>
+      <button onclick="pauseExam()">暂停退出</button>
       <button onclick="submitQuiz()">交卷</button>
     </div>
   </div>
@@ -291,6 +307,24 @@
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
+  <div id="update-logs-container" style="display:none;">
+    <h2>更新日志</h2>
+    <div id="update-logs-list">
+      <p>2024年12月18日更新：</p>
+      <ul>
+        <li>增加乱序/顺序题序选项</li>
+        <li>增加选项和进度记录功能</li>
+        <li>增加清除历史记录的功能</li>
+        <li>增加意外退出（刷新/关闭页面）返回后继续考试的功能</li>
+        <li>增加暂停考试后重新返回考试的功能</li>
+        <li>增加错题查看的功能，修复图片展示问题</li>
+        <li>修复”无题目“的问题</li>
+        <li>增加错题复习功能，只要不清除历史即记录所有做错过的题目，并记录错误次数</li>
+      </ul>
+    </div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
   <script>
     const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw";
     const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
@@ -300,21 +334,10 @@
     let userAnswers = [];
     let currentSheetName = "";
     let answerVisible = false;
-    let mistakeQuestions = []; 
+    let mistakeQuestions = [];
     let logs = [];
 
-    // 读取随机选项状态
     let randomOrder = loadRandomOrderSetting();
-
-    function loadRandomOrderSetting() {
-      const setting = localStorage.getItem('randomOrder');
-      return setting === 'true'; // 默认为false，如果无记录则返回false
-    }
-
-    function saveRandomOrderSetting(value) {
-      localStorage.setItem('randomOrder', value ? 'true' : 'false');
-    }
-
     const randomCheckbox = document.getElementById('random-checkbox');
     randomCheckbox.checked = randomOrder; 
     randomCheckbox.addEventListener('change', () => {
@@ -322,7 +345,72 @@
       saveRandomOrderSetting(randomOrder);
     });
 
+    const continueExamBtn = document.getElementById('continue-exam-btn');
+    const savedExam = loadCurrentExam();
+    if(savedExam) {
+      continueExamBtn.style.display = 'inline-block';
+    }
+
     getClientIPAndLogAccess();
+
+    function loadRandomOrderSetting() {
+      const setting = localStorage.getItem('randomOrder');
+      return setting === 'true'; 
+    }
+
+    function saveRandomOrderSetting(value) {
+      localStorage.setItem('randomOrder', value ? 'true' : 'false');
+    }
+
+    function loadCurrentExam() {
+      const exam = localStorage.getItem('currentExam');
+      return exam ? JSON.parse(exam) : null;
+    }
+
+    function saveCurrentExam() {
+      const currentExam = {
+        sheetName: currentSheetName,
+        currentQuestionIndex,
+        userAnswers,
+        questions,
+        randomOrder
+      };
+      localStorage.setItem('currentExam', JSON.stringify(currentExam));
+    }
+
+    function clearCurrentExam() {
+      localStorage.removeItem('currentExam');
+      continueExamBtn.style.display = 'none';
+    }
+
+    function continueExam() {
+      const exam = loadCurrentExam();
+      if(!exam) {
+        alert("没有未完成的考试记录");
+        return;
+      }
+      const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs} = exam;
+      const total = qs.length;
+      const progress = idx+1;
+      const confirmContinue = confirm(`检测到您上次考试未完成（套题名称：${sheetName}，进度：${progress}/${total}），是否继续？`);
+      if(confirmContinue) {
+        currentSheetName = sheetName;
+        currentQuestionIndex = idx;
+        userAnswers = ua;
+        questions = qs;
+        randomOrder = exam.randomOrder;
+        startQuizFromState();
+      } else {
+        clearCurrentExam();
+      }
+    }
+
+    function startQuizFromState() {
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
+      loadQuestion();
+    }
 
     async function getClientIPAndLogAccess() {
       const visitTime = new Date().toLocaleString();
@@ -463,6 +551,7 @@
       userAnswers = [];
       answerVisible = false;
       mistakeQuestions = [];
+      clearCurrentExam();
       document.getElementById('container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'block';
       document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
@@ -504,6 +593,7 @@
       }
 
       document.getElementById('answer-display').innerText = "";
+      saveCurrentExam();
     }
 
     function updateRemainingQuestions() {
@@ -516,6 +606,7 @@
       resetButtonHighlight();
       if (answer === '⭕') document.getElementById('btn-correct').classList.add('highlight');
       if (answer === '❌') document.getElementById('btn-wrong').classList.add('highlight');
+      saveCurrentExam();
     }
 
     function resetButtonHighlight() {
@@ -572,12 +663,10 @@
         const userAnswer = userAnswers[index] || "";
         if (userAnswer !== "" && userAnswer !== q.answer) {
           incorrectCount++;
-          // 这里存入sheetName字段
           const key = q.question + '||' + q.answer + '||' + q.image;
           if (mistakesObj[key]) {
             mistakesObj[key].count += 1;
             mistakesObj[key].userAnswer = userAnswer;
-            // 更新sheetName信息（如果原先没有，补上）
             if(!mistakesObj[key].sheetName) {
               mistakesObj[key].sheetName = currentSheetName;
             }
@@ -603,10 +692,20 @@
       });
 
       saveMistakesToCache(mistakesObj);
+      clearCurrentExam(); 
 
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
       document.getElementById('score').innerText = `错题数：${incorrectCount} / ${questions.length}`;
+    }
+
+    function pauseExam() {
+      alert("考试进度已保存，下次可继续当前考试！");
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('container').style.display = 'block';
+      if(loadCurrentExam()) {
+        continueExamBtn.style.display = 'inline-block';
+      }
     }
 
     function resetQuiz() {
@@ -616,6 +715,12 @@
       document.getElementById('mistake-review-container').style.display='none';
       document.getElementById('current-mistakes-container').style.display='none';
       document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      if(loadCurrentExam()) {
+        continueExamBtn.style.display = 'inline-block';
+      } else {
+        continueExamBtn.style.display = 'none';
+      }
     }
 
     function viewMistakes() {
@@ -660,6 +765,8 @@
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('current-mistakes-container').style.display = 'none';
+      document.getElementById('console-logs-container').style.display = 'none';
+      document.getElementById('update-logs-container').style.display = 'none';
       document.getElementById('mistake-review-container').style.display = 'block';
 
       const mistakeContainer = document.getElementById('mistake-questions');
@@ -689,9 +796,23 @@
       });
     }
 
-    function clearHistory() {
-      localStorage.removeItem('mistakes');
-      alert("历史做题记录已清除");
+    function clearAllHistory() {
+      const confirmClear = confirm("清除历史会导致错题集、未完成考试记录和相关设置全部清空，确定要清除吗？");
+      if(confirmClear) {
+        localStorage.clear();
+        alert("历史记录已清除");
+        resetQuiz();
+      }
+    }
+
+    function showUpdateLogs() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='block';
     }
 
     async function viewConsoleLogs() {
@@ -744,7 +865,7 @@
         values: values
       };
 
-      const response = await fetch(url, {
+      await fetch(url, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(body)
@@ -757,6 +878,7 @@
       document.getElementById('result-container').style.display='none';
       document.getElementById('mistake-review-container').style.display='none';
       document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
       document.getElementById('console-logs-container').style.display='block';
 
       const consoleLogsContent = document.getElementById('console-logs-content');
