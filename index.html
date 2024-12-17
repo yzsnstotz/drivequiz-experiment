@@ -243,11 +243,18 @@
     }
 
     function processSheetData(values) {
-      return values.slice(1).map(row => ({
-        question: row[1],
-        image: row[2] || "",
-        answer: row[8] === "o" ? "⭕" : "❌"
-      }));
+      return values.slice(1).map((row, idx) => {
+        const qText = row[1] ? row[1].trim() : "";
+        if (!qText) {
+          console.log("发现无题目数据行（检查数据源）:", row);
+        }
+        const qImage = row[2] ? row[2].trim() : "";
+        return {
+          question: qText || "无题目",
+          image: qImage, // 若为空则之后不显示图片框
+          answer: row[8] === "o" ? "⭕" : "❌"
+        };
+      });
     }
 
     function shuffle(array) {
@@ -271,7 +278,18 @@
     function loadQuestion() {
       const q = questions[currentQuestionIndex];
       document.getElementById('question').innerText = q.question || "无题目";
-      document.getElementById('image').innerHTML = q.image ? `<img src="${q.image}" alt="题目图片">` : '<div style="height:150px;"></div>';
+
+      const imageContainer = document.getElementById('image');
+      // 无图片则不显示图片区域内容
+      if (q.image) {
+        imageContainer.style.display = 'flex';
+        imageContainer.innerHTML = `<img src="${q.image}" alt="题目图片">`;
+      } else {
+        // 无图片则隐藏图片区域
+        imageContainer.style.display = 'none';
+        imageContainer.innerHTML = '';
+      }
+
       document.getElementById('answer-display').innerText = "";
       resetButtonHighlight();
       updateRemainingQuestions();
@@ -320,14 +338,38 @@
       }
     }
 
+    function allQuestionsAnswered() {
+      // 检查是否所有题都已有回答
+      return questions.every((q, i) => {
+        const ans = userAnswers[i];
+        return ans === '⭕' || ans === '❌'; // 用户有回答则返回true
+      });
+    }
+
     function submitQuiz() {
+      // 检查是否全部回答
+      if (!allQuestionsAnswered()) {
+        const confirmSubmit = confirm("未完成所有题目，确定要交卷吗？");
+        if (!confirmSubmit) {
+          return; // 用户取消交卷
+        }
+      }
+
       let incorrectCount = 0;
       mistakeQuestions = []; // 清空错题记录
+
       questions.forEach((q, index) => {
         const userAnswer = userAnswers[index] || "";
-        if (userAnswer !== q.answer) {
+        // 只有在用户有回答并且回答错误时，才计入错题
+        if (userAnswer !== "" && userAnswer !== q.answer) {
           incorrectCount++;
-          mistakeQuestions.push(q); // 添加错题
+          mistakeQuestions.push({
+            question: q.question,
+            image: q.image,
+            answer: q.answer,
+            originalIndex: index,
+            userAnswer: userAnswer
+          });
         }
       });
       saveMistakesToCache(); // 缓存错题
@@ -340,20 +382,31 @@
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
+      document.getElementById('mistake-review-container').style.display = 'none';
     }
 
-    // 错题复习页面
+    // 错题查看
     function viewMistakes() {
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('mistake-review-container').style.display = 'block';
       const mistakeContainer = document.getElementById('mistake-questions');
       mistakeContainer.innerHTML = '';
-      mistakeQuestions.forEach((q, index) => {
+      mistakeQuestions.forEach((item, index) => {
         const questionDiv = document.createElement('div');
-        questionDiv.innerHTML = 
-          `<div><strong>题目 ${index + 1}：</strong>${q.question}</div>
-          <div><strong>您的答案：</strong>${userAnswers[index]}</div>
-          <div><strong>正确答案：</strong>${q.answer}</div>`;
+        questionDiv.style.borderBottom = "1px solid #ccc";
+        questionDiv.style.marginBottom = "10px";
+        questionDiv.style.paddingBottom = "10px";
+
+        let imgHTML = '';
+        if (item.image) {
+          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;border-radius:5px;margin-top:5px;"></div>`;
+        }
+
+        questionDiv.innerHTML =
+          `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+           ${imgHTML}
+           <div><strong>您的答案：</strong>${item.userAnswer}</div>
+           <div><strong>正确答案：</strong>${item.answer}</div>`;
         mistakeContainer.appendChild(questionDiv);
       });
     }
@@ -362,7 +415,28 @@
     function startMistakeReview() {
       mistakeQuestions = loadMistakesFromCache();
       if (mistakeQuestions.length > 0) {
-        viewMistakes();
+        document.getElementById('container').style.display = 'none';
+        document.getElementById('mistake-review-container').style.display = 'block';
+        const mistakeContainer = document.getElementById('mistake-questions');
+        mistakeContainer.innerHTML = '';
+        mistakeQuestions.forEach((item, index) => {
+          const questionDiv = document.createElement('div');
+          questionDiv.style.borderBottom = "1px solid #ccc";
+          questionDiv.style.marginBottom = "10px";
+          questionDiv.style.paddingBottom = "10px";
+
+          let imgHTML = '';
+          if (item.image) {
+            imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;border-radius:5px;margin-top:5px;"></div>`;
+          }
+
+          questionDiv.innerHTML =
+            `<div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+             ${imgHTML}
+             <div><strong>您的答案：</strong>${item.userAnswer || "无记录"}</div>
+             <div><strong>正确答案：</strong>${item.answer}</div>`;
+          mistakeContainer.appendChild(questionDiv);
+        });
       } else {
         alert("没有错题记录");
       }
