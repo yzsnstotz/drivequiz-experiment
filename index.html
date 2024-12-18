@@ -90,7 +90,7 @@
       line-height: 1.6;
     }
 
-    #info .top-buttons {
+    #info .top-buttons, #info .battle-buttons {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
@@ -152,6 +152,7 @@
       text-align: center;
       min-height: 50px; 
       line-height: 1.4;
+      white-space: pre-wrap; /* Preserve line breaks */
     }
 
     #image {
@@ -220,6 +221,7 @@
       color: #FF4D4D;
       margin-top: 10px;
       text-align: center;
+      white-space: pre-wrap; /* Preserve line breaks */
     }
 
     #remaining-questions {
@@ -380,6 +382,44 @@
     #battle-mode-selection button {
       margin-top: 10px;
     }
+
+    /* Initial Message Area Styles */
+    #initial-message {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: #856404;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    #initial-message p {
+      margin: 10px 0;
+    }
+    #initial-message img {
+      display: block;
+      margin: 20px auto 10px auto;
+      max-width: 200px;
+      cursor: pointer;
+    }
+    /* 删除下载按钮的相关样式 */
+    /* #initial-message .download-button {
+      display: block;
+      margin: 0 auto;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #initial-message .download-button:hover {
+      background-color: #0056b3;
+    } */
   </style>
 </head>
 <body>
@@ -391,6 +431,7 @@
   </h1>
 
   <div id="container">
+    <!-- 优先级1: 套题板块 -->
     <h2>请选择套题</h2>
     <div id="random-option">
       <label>
@@ -403,28 +444,29 @@
 
     <div id="sheet-selection">加载中...</div>
     
-    <!-- 新增“大乱斗”按钮 -->
-    <div style="text-align: center; margin-top: 10px;">
-      <button onclick="openBattleModeSelection()" style="background: #6f42c1;">大乱斗</button>
-    </div>
-
+    <!-- 优先级1: 按钮群，包括大乱斗 -->
     <div id="info">
       <div class="top-buttons">
         <button onclick="showSummary()" style="background: #17a2b8;">汇总表现</button>
         <button onclick="startMistakeReview()">错题复习</button>
         <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">继续考试</button>
+        <button onclick="openBattleModeSelection()" style="background: #6f42c1;">大乱斗</button>
       </div>
       <div class="bottom-buttons">
-        <button onclick="clearAllHistory()">清除历史</button>
-        <button onclick="viewConsoleLogs()">控制台</button>
-        <button onclick="showUpdateLogs()">更新日志</button>
         <button onclick="showFunctionIntro()">功能介绍</button>
+        <button onclick="showUpdateLogs()">更新日志</button>
+        <button onclick="viewConsoleLogs()">控制台</button>
+        <button onclick="clearAllHistory()">清除历史</button>
       </div>
-      <div class="author-info">
-        <p>制作人微信：Leoyongzhe</p>
-        <p>大家一起努力！</p>
-        <p>欢迎大家反馈改进！</p>
-      </div>
+    </div>
+
+    <!-- 增加大乱斗和留言框之间的空隙 -->
+    <div style="height: 20px;"></div>
+
+    <!-- 优先级2: 初始留言区域 -->
+    <div id="initial-message">
+      <!-- 动态内容将通过JavaScript填充 -->
+      <p>加载中...</p>
     </div>
   </div>
 
@@ -501,57 +543,18 @@
   <div id="update-logs-container" style="display:none;">
     <h2>更新日志</h2>
     <div id="update-logs-list">
-      <ul>
-        <li>2024年12月18日 14:30 更新：</li>
-        <ul>
-          <li>增加乱序/顺序题序选项</li>
-          <li>增加选项和进度记录功能</li>
-          <li>增加清除历史记录的功能</li>
-          <li>增加意外退出（刷新/关闭页面）返回后继续考试的功能</li>
-          <li>增加暂停考试后重新返回考试的功能</li>
-          <li>增加错题查看的功能，修复图片展示问题</li>
-          <li>修复”无题目“的问题</li>
-          <li>增加错题复习功能，只要不清除历史即记录所有做错过的题目，并记录错误次数</li>
-        </ul>
-        <!-- 新增更新日志 -->
-        <li>2024年12月19日 10:00 更新（日本）：</li>
-        <ul>
-          <li>修复套题选择板块无法加载数据的问题</li>
-          <li>修复继续考试功能，确保保存并恢复考试进度和已花费时间</li>
-          <li>调整初始页面按钮优先级，将“继续考试”、“汇总表现”、“错题复习”、“功能介绍”置于同等优先级，降低“清除历史”、“控制台”、“更新日志”按钮的优先级</li>
-          <li>缩小口号最后一句话的字体大小，避免文字溢出</li>
-        </ul>
-        <!-- 新增功能更新日志 -->
-        <li>2024年12月20日 09:00 更新：</li>
-        <ul>
-          <li>在做题时显示正确答案的解说和解题思路</li>
-          <li>在查看错题和错题复习时显示错题的解说和解题思路</li>
-          <li>大乱斗模式支持多套题选择，生成综合性考试</li>
-          <li>更新功能介绍，包含新增的解说显示和多套题大乱斗模式</li>
-        </ul>
-        <!-- 根据每次迭代，继续添加更新日志 -->
-      </ul>
+      <!-- 动态内容将通过JavaScript填充 -->
+      <p>加载中...</p>
     </div>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
   <div id="function-intro-container" style="display:none;">
     <h2>功能介绍</h2>
-    <p>欢迎使用足利驾校习题练习平台！以下是我们的主要功能：</p>
-    <ul>
-      <li><strong>选择套题：</strong>从多个套题中选择您想要练习的题目。</li>
-      <li><strong>随机题序：</strong>开启后，题目将以随机顺序出现，帮助您更好地掌握知识点。</li>
-      <li><strong>自动翻题：</strong>开启后，选择答案后将自动跳转到下一题，无需手动点击“下一题”。</li>
-      <li><strong>大乱斗：</strong>选择多个套题的题目混合在一起，进行一套综合性考试。</li>
-      <li><strong>继续考试：</strong>如果您有未完成的考试，可以随时继续之前的考试。</li>
-      <li><strong>汇总表现：</strong>查看您的做题历史和表现，了解自己的学习进度和薄弱环节。</li>
-      <li><strong>错题复习：</strong>查看并复习您之前做错的题目，帮助您巩固薄弱环节。</li>
-      <li><strong>历史记录：</strong>系统会自动保存您的考试进度，您可以随时继续未完成的考试。</li>
-      <li><strong>更新日志：</strong>查看平台的最新更新内容，了解新增功能和修复的Bug。</li>
-      <li><strong>清除历史：</strong>一键清除您的考试记录和错题集，重新开始。</li>
-      <li><strong>计时器：</strong>在做题界面显示实时计时器，监控您完成题目的时间。</li>
-      <li><strong>解说显示：</strong>在做题、查看错题和错题复习时显示题目的解说和解题思路。</li>
-    </ul>
+    <div id="function-intro-content">
+      <!-- 动态内容将通过JavaScript填充 -->
+      <p>加载中...</p>
+    </div>
     <button onclick="resetQuiz()">返回首页</button>
   </div>
 
@@ -580,26 +583,35 @@
     let isBattleMode = false; // 是否为大乱斗模式
 
     let randomOrder = loadRandomOrderSetting();
-    const randomCheckbox = document.getElementById('random-checkbox');
-    randomCheckbox.checked = randomOrder; 
-    randomCheckbox.addEventListener('change', () => {
-      randomOrder = randomCheckbox.checked;
-      saveRandomOrderSetting(randomOrder);
-    });
-
     let autoNext = loadAutoNextSetting();
-    const autoNextCheckbox = document.getElementById('autonext-checkbox');
-    autoNextCheckbox.checked = autoNext;
-    autoNextCheckbox.addEventListener('change', () => {
-      autoNext = autoNextCheckbox.checked;
-      saveAutoNextSetting(autoNext);
-    });
 
-    const continueExamBtn = document.getElementById('continue-exam-btn');
-    const savedExam = loadCurrentExam();
-    if(savedExam) {
-      continueExamBtn.style.display = 'inline-block';
-    }
+    // Wait for DOM to load before accessing elements
+    document.addEventListener('DOMContentLoaded', () => {
+      const randomCheckbox = document.getElementById('random-checkbox');
+      randomCheckbox.checked = randomOrder; 
+      randomCheckbox.addEventListener('change', () => {
+        randomOrder = randomCheckbox.checked;
+        saveRandomOrderSetting(randomOrder);
+      });
+
+      const autoNextCheckbox = document.getElementById('autonext-checkbox');
+      autoNextCheckbox.checked = autoNext;
+      autoNextCheckbox.addEventListener('change', () => {
+        autoNext = autoNextCheckbox.checked;
+        saveAutoNextSetting(autoNext);
+      });
+
+      const continueExamBtn = document.getElementById('continue-exam-btn');
+      const savedExam = loadCurrentExam();
+      if(savedExam) {
+        continueExamBtn.style.display = 'inline-block';
+      }
+
+      // Load dynamic content
+      loadInitialMessages();
+      loadUpdateLogs();
+      loadFunctionIntro();
+    });
 
     getClientIPAndLogAccess();
     fetchSheetNames();
@@ -650,7 +662,10 @@
 
     function clearCurrentExam() {
       localStorage.removeItem('currentExam');
-      continueExamBtn.style.display = 'none';
+      const continueExamBtn = document.getElementById('continue-exam-btn');
+      if (continueExamBtn) {
+        continueExamBtn.style.display = 'none';
+      }
     }
 
     async function getClientIPAndLogAccess() {
@@ -722,7 +737,10 @@
           selectionContainer.innerHTML = "<p>未能获取套题，请检查Google Sheet配置。</p>";
           return;
         }
-        sheetNames = data.sheets.map(sheet => sheet.properties.title).filter(name => name !== "Console");
+        // 排除特定Sheet
+        sheetNames = data.sheets
+          .map(sheet => sheet.properties.title)
+          .filter(name => !["Console", "留言板", "更新日志", "功能介绍"].includes(name));
         if(sheetNames.length === 0) {
           selectionContainer.innerHTML = "<p>未找到任何套题。</p>";
           return;
@@ -921,7 +939,7 @@
           question: qText || "无题目",
           image: qImage,
           answer: row[8] === "o" ? "⭕" : "❌",
-          explanation: qExplanation || "无解说"
+          explanation: qExplanation || "" // 允许为空
         };
       }).filter(q => q.question !== "无题目"); // 过滤掉无题目
     }
@@ -996,7 +1014,11 @@
         imageContainer.innerHTML = '';
       }
 
-      document.getElementById('answer-display').innerText = "";
+      if (q.explanation) {
+        document.getElementById('answer-display').innerText = "";
+      } else {
+        document.getElementById('answer-display').innerText = "";
+      }
       saveCurrentExam();
     }
 
@@ -1043,7 +1065,11 @@
       if (answerVisible) {
         document.getElementById('answer-display').innerText = "";
       } else {
-        document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}\n解说：${explanation}`;
+        if (explanation) {
+          document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}\n解说：${explanation}`;
+        } else {
+          document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}`;
+        }
       }
       answerVisible = !answerVisible;
     }
@@ -1223,7 +1249,10 @@
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
       if(loadCurrentExam()) {
-        continueExamBtn.style.display = 'inline-block';
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'inline-block';
+        }
       }
     }
 
@@ -1241,9 +1270,15 @@
       isBattleMode = false; // 退出大乱斗模式
       fetchSheetNames(); // 重新加载套题选择
       if(loadCurrentExam()) {
-        continueExamBtn.style.display = 'inline-block';
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'inline-block';
+        }
       } else {
-        continueExamBtn.style.display = 'none';
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'none';
+        }
       }
     }
 
@@ -1267,13 +1302,18 @@
           imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
         }
 
+        let explanationHTML = '';
+        if (item.explanation) {
+          explanationHTML = `<div><strong>解说：</strong>${item.explanation}</div>`;
+        }
+
         questionDiv.innerHTML =
           `<div><strong>套题：</strong>${item.sheetName || "无记录"}</div>
            <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
            <div><strong>您的错误答案：</strong>${item.userAnswer}</div>
            <div><strong>正确答案：</strong>${item.answer}</div>
-           <div><strong>解说：</strong>${item.explanation}</div>`;
+           ${explanationHTML}`;
         mistakeContainer.appendChild(questionDiv);
       });
     }
@@ -1313,13 +1353,18 @@
           imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
         }
 
+        let explanationHTML = '';
+        if (item.explanation) {
+          explanationHTML = `<div><strong>解说：</strong>${item.explanation}</div>`;
+        }
+
         questionDiv.innerHTML =
           `<div><strong>套题：</strong>${sheetNameDisplay}</div>
            <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
            <div><strong>您的最后错误答案：</strong>${item.userAnswer}</div>
            <div><strong>正确答案：</strong>${item.answer}</div>
-           <div><strong>解说：</strong>${item.explanation}</div>
+           ${explanationHTML}
            <div><strong>错误次数：</strong>${cCount}</div>`;
         mistakeContainer.appendChild(questionDiv);
       });
@@ -1576,12 +1621,12 @@
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A:Z?key=${apiKey}`;
         const response = await fetch(url);
         if(!response.ok) {
-          consoleLogsContent.textContent = "加载日志失败";
+          consoleLogsContent.innerHTML = "<p>加载日志失败</p>";
           return;
         }
         const data = await response.json();
-        if(!data.values || data.values.length <= 0) {
-          consoleLogsContent.textContent = "暂无日志记录";
+        if(!data.values || data.values.length <= 1) { // 假设第一行是标题
+          consoleLogsContent.innerHTML = "<p>暂无日志记录</p>";
           return;
         }
 
@@ -1598,7 +1643,7 @@
         table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
-        data.values.forEach((rowArr) => {
+        data.values.slice(1).forEach((rowArr) => { // 跳过标题行
           const tr = document.createElement('tr');
           headers.forEach((h, i) => {
             const td = document.createElement('td');
@@ -1614,7 +1659,7 @@
 
       } catch(e) {
         console.error(e);
-        consoleLogsContent.textContent = "加载日志出现异常";
+        consoleLogsContent.innerHTML = "<p>加载日志出现异常</p>";
       }
     }
 
@@ -1637,8 +1682,14 @@
         autoNext = an;
         isBattleMode = bm;
         elapsedTime = et || 0; // 恢复已花费时间，避免NaN
-        randomCheckbox.checked = randomOrder; // 更新UI
-        autoNextCheckbox.checked = autoNext; // 更新UI
+        const randomCheckbox = document.getElementById('random-checkbox');
+        if (randomCheckbox) {
+          randomCheckbox.checked = randomOrder; // 更新UI
+        }
+        const autoNextCheckbox = document.getElementById('autonext-checkbox');
+        if (autoNextCheckbox) {
+          autoNextCheckbox.checked = autoNext; // 更新UI
+        }
         startQuizFromState();
       } else {
         clearCurrentExam();
@@ -1659,6 +1710,201 @@
 
     function stopTimer() {
       clearInterval(timerInterval);
+    }
+
+    // Function to trigger QR code scan (attempt)
+    function triggerScan() {
+      // 直接打开二维码图片以便用户扫描
+      const qrImage = document.querySelector('#initial-message img');
+      if(qrImage) {
+        window.open(qrImage.src, '_blank');
+      }
+    }
+
+    // Dynamic content loading functions
+
+    async function loadInitialMessages() {
+      const initialMessageContainer = document.getElementById('initial-message');
+      initialMessageContainer.innerHTML = "<p>加载中...</p>";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/留言板!B1:B5?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          initialMessageContainer.innerHTML = "<p>无法加载留言内容。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length === 0) {
+          initialMessageContainer.innerHTML = "<p>暂无留言内容。</p>";
+          return;
+        }
+
+        // 清空并重新构建留言内容
+        initialMessageContainer.innerHTML = "";
+
+        // B1至B4为留言内容
+        data.values.slice(0,4).forEach((row, index) => {
+          const message = row[0].trim();
+          if(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            initialMessageContainer.appendChild(p);
+          }
+        });
+
+        // B5为二维码链接
+        if(data.values.length >=5) {
+          const qrUrl = data.values[4][0].trim();
+          if(qrUrl) {
+            const img = document.createElement('img');
+            img.src = qrUrl;
+            img.alt = "加入社区二维码";
+            img.onclick = triggerScan;
+            initialMessageContainer.appendChild(img);
+          }
+        }
+
+      } catch(e) {
+        console.error("加载留言内容失败:", e);
+        initialMessageContainer.innerHTML = "<p>加载留言内容出现错误。</p>";
+      }
+    }
+
+    async function loadUpdateLogs() {
+      const updateLogsContainer = document.getElementById('update-logs-list');
+      updateLogsContainer.innerHTML = "<p>加载中...</p>";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/更新日志!A:C?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          updateLogsContainer.innerHTML = "<p>无法加载更新日志。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length <=1 ) { // 假设第一行是标题
+          updateLogsContainer.innerHTML = "<p>暂无更新日志。</p>";
+          return;
+        }
+
+        // 清空并重新构建更新日志内容
+        updateLogsContainer.innerHTML = "";
+        const table = document.createElement('table');
+
+        // 创建表头
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["事件时间","事件内容","备注"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // 创建表格主体
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => { // 跳过标题行
+          const eventTime = rowArr[0] ? rowArr[0].trim() : "";
+          const eventContent = rowArr[1] ? rowArr[1].trim() : "";
+          const remarks = rowArr[2] ? rowArr[2].trim() : "";
+
+          if(eventTime || eventContent || remarks) {
+            const tr = document.createElement('tr');
+            const tdTime = document.createElement('td');
+            tdTime.textContent = eventTime;
+            const tdContent = document.createElement('td');
+            tdContent.textContent = eventContent;
+            const tdRemarks = document.createElement('td');
+            tdRemarks.textContent = remarks;
+            tr.appendChild(tdTime);
+            tr.appendChild(tdContent);
+            tr.appendChild(tdRemarks);
+            tbody.appendChild(tr);
+          }
+        });
+
+        if(tbody.children.length === 0) {
+          updateLogsContainer.innerHTML = "<p>暂无更新日志。</p>";
+        } else {
+          table.appendChild(tbody);
+          updateLogsContainer.appendChild(table);
+        }
+
+      } catch(e) {
+        console.error("加载更新日志失败:", e);
+        updateLogsContainer.innerHTML = "<p>加载更新日志出现错误。</p>";
+      }
+    }
+
+    async function loadFunctionIntro() {
+      const functionIntroContainer = document.getElementById('function-intro-content');
+      functionIntroContainer.innerHTML = "<p>加载中...</p>";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/功能介绍!A:C?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          functionIntroContainer.innerHTML = "<p>无法加载功能介绍。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length <=1 ) { // 假设第一行是标题
+          functionIntroContainer.innerHTML = "<p>暂无功能介绍。</p>";
+          return;
+        }
+
+        // 清空并重新构建功能介绍内容
+        functionIntroContainer.innerHTML = "";
+        const table = document.createElement('table');
+
+        // 创建表头
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["功能名称","功能描述","备注"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        // 创建表格主体
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => { // 跳过标题行
+          const featureName = rowArr[0] ? rowArr[0].trim() : "";
+          const featureDesc = rowArr[1] ? rowArr[1].trim() : "";
+          const remarks = rowArr[2] ? rowArr[2].trim() : "";
+
+          if(featureName || featureDesc || remarks) {
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.textContent = featureName;
+            const tdDesc = document.createElement('td');
+            tdDesc.textContent = featureDesc;
+            const tdRemarks = document.createElement('td');
+            tdRemarks.textContent = remarks;
+            tr.appendChild(tdName);
+            tr.appendChild(tdDesc);
+            tr.appendChild(tdRemarks);
+            tbody.appendChild(tr);
+          }
+        });
+
+        if(tbody.children.length === 0) {
+          functionIntroContainer.innerHTML = "<p>暂无功能介绍。</p>";
+        } else {
+          table.appendChild(tbody);
+          functionIntroContainer.appendChild(table);
+        }
+
+      } catch(e) {
+        console.error("加载功能介绍失败:", e);
+        functionIntroContainer.innerHTML = "<p>加载功能介绍出现错误。</p>";
+      }
     }
   </script>
 </body>
