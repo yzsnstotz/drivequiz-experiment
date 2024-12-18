@@ -32,7 +32,7 @@
       margin-bottom: 5px;
     }
     h1 .title {
-      font-size: 16px;
+      font-size: 15px; /* 缩小字体大小 */
     }
 
     h2 {
@@ -348,13 +348,13 @@
       <div class="top-buttons">
         <button onclick="showSummary()" style="background: #17a2b8;">汇总表现</button>
         <button onclick="startMistakeReview()">错题复习</button>
+        <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">继续考试</button>
       </div>
       <div class="bottom-buttons">
         <button onclick="clearAllHistory()">清除历史</button>
         <button onclick="viewConsoleLogs()">控制台</button>
         <button onclick="showUpdateLogs()">更新日志</button>
         <button onclick="showFunctionIntro()">功能介绍</button>
-        <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">继续考试</button>
       </div>
       <div class="author-info">
         <p>制作人微信：Leoyongzhe</p>
@@ -434,14 +434,12 @@
           <li>增加错题复习功能，只要不清除历史即记录所有做错过的题目，并记录错误次数</li>
         </ul>
         <!-- 新增更新日志 -->
-        <li>2024年12月18日 18:00 更新：</li>
+        <li>2024年12月19日 10:00 更新（日本）：</li>
         <ul>
-          <li>在做题界面取消毫秒和小时精度，计时器仅显示分钟和秒</li>
-          <li>汇总表现中的时间显示取消毫秒和小时精度，仅显示分钟和秒</li>
-          <li>将“错题复习”按钮移动到与“汇总表现”按钮同等优先级的位置</li>
-          <li>将作者联系方式和口号移动到初始页面的最底部</li>
-          <li>将“查看控制台日志”按钮简化为“控制台”，并从功能介绍中移除该功能的描述</li>
-          <li>丰富更新日志内容，记录更新时间为当地时间并添加更新地点信息（基于IP地址）</li>
+          <li>修复套题选择板块无法加载数据的问题</li>
+          <li>修复继续考试功能，确保保存并恢复考试进度和已花费时间</li>
+          <li>调整初始页面按钮优先级，将“继续考试”、“汇总表现”、“错题复习”、“功能介绍”置于同等优先级，降低“清除历史”、“控制台”、“更新日志”按钮的优先级</li>
+          <li>缩小口号最后一句话的字体大小，避免文字溢出</li>
         </ul>
         <!-- 根据每次迭代，继续添加更新日志 -->
       </ul>
@@ -455,10 +453,10 @@
     <ul>
       <li><strong>选择套题：</strong>从多个套题中选择您想要练习的题目。</li>
       <li><strong>随机题序：</strong>开启后，题目将以随机顺序出现，帮助您更好地掌握知识点。</li>
-      <li><strong>错题复习：</strong>查看并复习您之前做错的题目，帮助您巩固薄弱环节。</li>
+      <li><strong>继续考试：</strong>如果您有未完成的考试，可以随时继续之前的考试。</li>
       <li><strong>汇总表现：</strong>查看您的做题历史和表现，了解自己的学习进度和薄弱环节。</li>
+      <li><strong>错题复习：</strong>查看并复习您之前做错的题目，帮助您巩固薄弱环节。</li>
       <li><strong>历史记录：</strong>系统会自动保存您的考试进度，您可以随时继续未完成的考试。</li>
-      <li><strong>控制台：</strong>记录和查看系统运行日志，帮助开发者优化平台。</li>
       <li><strong>更新日志：</strong>查看平台的最新更新内容，了解新增功能和修复的Bug。</li>
       <li><strong>清除历史：</strong>一键清除您的考试记录和错题集，重新开始。</li>
       <li><strong>计时器：</strong>在做题界面显示实时计时器，监控您完成题目的时间。</li>
@@ -473,8 +471,8 @@
   </div>
 
   <script>
-    const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw";
-    const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
+    const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw"; // 请确保API密钥正确且具有访问权限
+    const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64"; // 请确保Spreadsheet ID正确
     let sheetNames = [];
     let questions = [];
     let currentQuestionIndex = 0;
@@ -486,6 +484,7 @@
     let quizStartTime = null; // 记录考试开始时间
     let quizEndTime = null;   // 记录考试结束时间
     let timerInterval = null; // 计时器间隔
+    let elapsedTime = 0;      // 已经花费的时间（毫秒）
     let userLocation = "未知地点"; // 用户位置
 
     let randomOrder = loadRandomOrderSetting();
@@ -526,7 +525,7 @@
         userAnswers,
         questions,
         randomOrder,
-        quizStartTime
+        elapsedTime
       };
       localStorage.setItem('currentExam', JSON.stringify(currentExam));
     }
@@ -544,7 +543,9 @@
         const res = await fetch('https://api.ipify.org?format=json');
         const data = await res.json();
         ip = data.ip || "未知IP";
-      } catch(e) {}
+      } catch(e) {
+        console.warn("获取IP失败:", e);
+      }
       
       // 获取地理位置信息
       try {
@@ -556,6 +557,7 @@
           userLocation = "未知地点";
         }
       } catch(e) {
+        console.warn("获取地理位置信息失败:", e);
         userLocation = "未知地点";
       }
 
@@ -594,19 +596,23 @@
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
         const response = await fetch(url);
         if(!response.ok) {
-          selectionContainer.textContent = "加载套题失败，请检查网络或配置";
+          selectionContainer.innerHTML = "<p>加载套题失败，请检查网络或配置。</p>";
           return;
         }
         const data = await response.json();
         if(!data.sheets) {
-          selectionContainer.textContent = "未能获取套题，请检查Google Sheet配置";
+          selectionContainer.innerHTML = "<p>未能获取套题，请检查Google Sheet配置。</p>";
           return;
         }
         sheetNames = data.sheets.map(sheet => sheet.properties.title).filter(name => name !== "Console");
+        if(sheetNames.length === 0) {
+          selectionContainer.innerHTML = "<p>未找到任何套题。</p>";
+          return;
+        }
         displaySheetSelection();
       } catch (e) {
         console.error(e);
-        selectionContainer.textContent = "加载套题失败，请检查配置或控制台日志";
+        selectionContainer.innerHTML = "<p>加载套题失败，请检查配置或控制台日志。</p>";
       }
     }
 
@@ -659,7 +665,7 @@
       questionElem.textContent = "加载中...";
 
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${sheetName}?key=${apiKey}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`;
         const response = await fetch(url);
         if(!response.ok) {
           sheetNameElem.textContent = `加载套题[${sheetName}]失败`;
@@ -714,7 +720,7 @@
           image: qImage,
           answer: row[8] === "o" ? "⭕" : "❌"
         };
-      });
+      }).filter(q => q.question !== "无题目"); // 过滤掉无题目
     }
 
     function shuffle(array) {
@@ -730,8 +736,16 @@
       userAnswers = [];
       answerVisible = false;
       mistakeQuestions = [];
-      quizStartTime = new Date(); // 开始计时
+      elapsedTime = 0; // 重置已花费时间
       clearCurrentExam();
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
+      loadQuestion();
+      startTimer(); // 启动计时器
+    }
+
+    function startQuizFromState() {
       document.getElementById('container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'block';
       document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
@@ -844,7 +858,7 @@
 
       stopTimer(); // 停止计时器
       quizEndTime = new Date(); // 结束计时
-      const timeSpentMs = quizEndTime - quizStartTime; // 计算时间，毫秒
+      const timeSpentMs = quizEndTime - quizStartTime + elapsedTime; // 计算时间，毫秒
       const timeSpentMinutes = Math.floor(timeSpentMs / 60000);
       const timeSpentSeconds = Math.floor((timeSpentMs % 60000) / 1000);
       const timeSpentFormatted = `${timeSpentMinutes}分钟${timeSpentSeconds}秒`;
@@ -957,6 +971,10 @@
 
     function pauseExam() {
       stopTimer(); // 停止计时器
+      // 计算已花费时间
+      const now = new Date();
+      elapsedTime += now - quizStartTime;
+      saveCurrentExam(); // 保存进度和已花费时间
       alert("考试进度已保存，下次可继续当前考试！");
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
@@ -1004,11 +1022,11 @@
         }
 
         questionDiv.innerHTML =
-        `<div><strong>套题：</strong>${item.sheetName || "无记录"}</div>
-         <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
-         ${imgHTML}
-         <div><strong>您的错误答案：</strong>${item.userAnswer}</div>
-         <div><strong>正确答案：</strong>${item.answer}</div>`;
+          `<div><strong>套题：</strong>${item.sheetName || "无记录"}</div>
+           <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+           ${imgHTML}
+           <div><strong>您的错误答案：</strong>${item.userAnswer}</div>
+           <div><strong>正确答案：</strong>${item.answer}</div>`;
         mistakeContainer.appendChild(questionDiv);
       });
     }
@@ -1331,12 +1349,35 @@
       }
     }
 
+    function continueExam() {
+      const exam = loadCurrentExam();
+      if(!exam) {
+        alert("没有未完成的考试记录");
+        return;
+      }
+      const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs, elapsedTime: et} = exam;
+      const total = qs.length;
+      const progress = idx + 1;
+      const confirmContinue = confirm(`检测到您上次考试未完成（套题名称：${sheetName}，进度：${progress}/${total}），是否继续？`);
+      if(confirmContinue) {
+        currentSheetName = sheetName;
+        currentQuestionIndex = idx;
+        userAnswers = ua;
+        questions = qs;
+        randomOrder = exam.randomOrder;
+        elapsedTime = et; // 恢复已花费时间
+        startQuizFromState();
+      } else {
+        clearCurrentExam();
+      }
+    }
+
     function startTimer() {
       const timerElem = document.getElementById('timer');
       quizStartTime = new Date();
       timerInterval = setInterval(() => {
         const now = new Date();
-        const elapsed = now - quizStartTime;
+        const elapsed = now - quizStartTime + elapsedTime;
         const minutes = String(Math.floor(elapsed / 60000)).padStart(2, '0');
         const seconds = String(Math.floor((elapsed % 60000) / 1000)).padStart(2, '0');
         timerElem.innerText = `时间：${minutes}分钟${seconds}秒`;
