@@ -19,6 +19,7 @@
       background-color: #007BFF;
       padding: 15px 0;
       margin: 0;
+      cursor: pointer; /* 鼠标悬停时显示为手型 */
     }
 
     /* 域名、口号、标题的排版 */
@@ -325,11 +326,28 @@
       margin-top: 10px;
       color: #333;
     }
+
+    /* Score Message Styles */
+    .score-excellent {
+      color: #28a745; /* Green */
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .score-good {
+      color: #ffc107; /* Yellow */
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .score-bad {
+      color: #dc3545; /* Red */
+      font-size: 24px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <!-- 大标题板块，包含域名/口号/标题 -->
-  <h1>
+  <h1 onclick="resetQuiz()">
     <div class="domain">zalem.app</div>
     <div class="slogan">霓虹千里，始于足利，欢迎来到足利驾校！</div>
     <div class="title">道路千万条，安全第一条；行车不规范，亲人泪两行！</div>
@@ -347,6 +365,12 @@
     </div>
 
     <div id="sheet-selection">加载中...</div>
+    
+    <!-- 新增“大乱斗”按钮 -->
+    <div style="text-align: center; margin-top: 10px;">
+      <button onclick="startBattleMode()" style="background: #6f42c1;">大乱斗</button>
+    </div>
+
     <div id="info">
       <div class="top-buttons">
         <button onclick="showSummary()" style="background: #17a2b8;">汇总表现</button>
@@ -392,8 +416,10 @@
   <div id="result-container" style="display: none;">
     <h2>考试结束</h2>
     <div style="text-align: center;">
-      <p id="score" style="font-size: 32px; font-weight: bold; color: #333;"></p>
+      <p id="score" class="score-excellent" style="font-size: 32px; font-weight: bold; color: #28a745;"></p>
       <p id="mistake-count" style="font-size: 20px; color: #dc3545;"></p>
+      <p id="correct-count" style="font-size: 20px; color: #28a745;"></p>
+      <p id="unanswered-count" style="font-size: 20px; color: #ffc107;"></p>
       <p id="completion-status"></p>
       <div class="progress-bar-container">
         <div class="progress-bar" id="progress-bar">0%</div>
@@ -459,6 +485,7 @@
       <li><strong>选择套题：</strong>从多个套题中选择您想要练习的题目。</li>
       <li><strong>随机题序：</strong>开启后，题目将以随机顺序出现，帮助您更好地掌握知识点。</li>
       <li><strong>自动翻题：</strong>开启后，选择答案后将自动跳转到下一题，无需手动点击“下一题”。</li>
+      <li><strong>大乱斗：</strong>将所有套题的题目混合在一起，进行一套综合性考试。</li>
       <li><strong>继续考试：</strong>如果您有未完成的考试，可以随时继续之前的考试。</li>
       <li><strong>汇总表现：</strong>查看您的做题历史和表现，了解自己的学习进度和薄弱环节。</li>
       <li><strong>错题复习：</strong>查看并复习您之前做错的题目，帮助您巩固薄弱环节。</li>
@@ -492,6 +519,7 @@
     let timerInterval = null; // 计时器间隔
     let elapsedTime = 0;      // 已经花费的时间（毫秒）
     let userLocation = "未知地点"; // 用户位置
+    let isBattleMode = false; // 是否为大乱斗模式
 
     let randomOrder = loadRandomOrderSetting();
     const randomCheckbox = document.getElementById('random-checkbox');
@@ -556,7 +584,8 @@
         questions,
         randomOrder,
         autoNext,
-        elapsedTime
+        elapsedTime,
+        isBattleMode
       };
       localStorage.setItem('currentExam', JSON.stringify(currentExam));
     }
@@ -710,6 +739,7 @@
           return;
         }
         currentSheetName = sheetName;
+        isBattleMode = false; // 不是大乱斗模式
         questions = processSheetData(data.values);
         if(randomOrder) {
           questions = shuffle(questions);
@@ -719,6 +749,63 @@
         console.error(e);
         sheetNameElem.textContent = `加载套题[${sheetName}]异常`;
         questionElem.textContent = "";
+      }
+    }
+
+    async function startBattleMode() {
+      let numQuestions = prompt("请输入大乱斗题数（10-500）：", "50");
+      if (numQuestions === null) {
+        // 用户取消输入
+        return;
+      }
+      numQuestions = parseInt(numQuestions);
+      if (isNaN(numQuestions) || numQuestions < 10 || numQuestions > 500) {
+        alert("请输入一个有效的数字，范围在10到500之间。");
+        return;
+      }
+
+      const sheetSelectionContainer = document.getElementById('sheet-selection');
+      sheetSelectionContainer.innerHTML = "<p>加载大乱斗套题中...</p>";
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          sheetSelectionContainer.innerHTML = "<p>加载大乱斗套题失败，请检查网络或配置。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.sheets) {
+          sheetSelectionContainer.innerHTML = "<p>未能获取套题，请检查Google Sheet配置。</p>";
+          return;
+        }
+        const allSheets = data.sheets.map(sheet => sheet.properties.title).filter(name => name !== "Console");
+        let allQuestions = [];
+        for(const sheet of allSheets) {
+          const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheet)}?key=${apiKey}`;
+          const sheetResponse = await fetch(sheetUrl);
+          if(sheetResponse.ok) {
+            const sheetData = await sheetResponse.json();
+            if(sheetData.values && sheetData.values.length >=1) {
+              const processed = processSheetData(sheetData.values);
+              allQuestions = allQuestions.concat(processed);
+            }
+          }
+        }
+        if(allQuestions.length === 0) {
+          sheetSelectionContainer.innerHTML = "<p>大乱斗套题没有题目。</p>";
+          return;
+        }
+        if(allQuestions.length < numQuestions) {
+          alert(`可用题目数为${allQuestions.length}，将使用所有题目。`);
+          numQuestions = allQuestions.length;
+        }
+        currentSheetName = "大乱斗套题";
+        isBattleMode = true;
+        questions = shuffle(allQuestions).slice(0, numQuestions);
+        startQuiz();
+      } catch(e) {
+        console.error(e);
+        sheetSelectionContainer.innerHTML = "<p>加载大乱斗套题失败，请检查配置或控制台日志。</p>";
       }
     }
 
@@ -845,8 +932,18 @@
           if (currentQuestionIndex < questions.length - 1) {
             currentQuestionIndex++;
             loadQuestion();
+          } else {
+            // 如果是最后一道题，提示交卷
+            alert('已到最后一题，请交卷。');
           }
         }, 300); // 延迟以便用户看到选择的高亮效果
+      }
+
+      // 如果是最后一道题并且自动翻题开启，自动提示交卷
+      if(autoNext && currentQuestionIndex === questions.length -1) {
+        setTimeout(() => {
+          submitQuiz();
+        }, 500); // 延迟以便用户看到选择的高亮效果
       }
     }
 
@@ -889,11 +986,12 @@
     }
 
     function submitQuiz() {
+      let confirmation = true;
       if (!allQuestionsAnswered()) {
-        const confirmSubmit = confirm("未完成所有题目，确定要交卷吗？");
-        if (!confirmSubmit) {
-          return;
-        }
+        confirmation = confirm("未完成所有题目，确定要交卷吗？");
+      }
+      if (!confirmation) {
+        return;
       }
 
       stopTimer(); // 停止计时器
@@ -904,12 +1002,23 @@
       const timeSpentFormatted = `${timeSpentMinutes}分钟${timeSpentSeconds}秒`;
 
       let incorrectCount = 0;
+      let correctCount = 0;
+      let unansweredCount = 0;
       let mistakesObj = loadMistakesFromCache();
       mistakeQuestions = [];
 
+      const totalQuestions = questions.length;
+      const scorePerQuestion = 100 / totalQuestions;
+      let totalScore = 0;
+
       questions.forEach((q, index) => {
-        const userAnswer = userAnswers[index] || "";
-        if (userAnswer !== "" && userAnswer !== q.answer) {
+        const userAnswer = userAnswers[index];
+        if (userAnswer === undefined) {
+          unansweredCount++;
+        } else if (userAnswer === q.answer) {
+          correctCount++;
+          totalScore += scorePerQuestion;
+        } else {
           incorrectCount++;
           const key = q.question + '||' + q.answer + '||' + q.image;
           if (mistakesObj[key]) {
@@ -939,31 +1048,29 @@
         }
       });
 
+      // 计算总分，向下取整
+      totalScore = Math.floor(totalScore);
+      if(totalScore > 100) totalScore = 100; // 防止超出100
+
       saveMistakesToCache(mistakesObj);
       clearCurrentExam(); 
 
-      // 计算得分
-      const totalQuestions = questions.length;
-      const scorePerQuestion = 100 / totalQuestions;
-      let totalScore = 0;
-      userAnswers.forEach(ans => {
-        if(ans === '⭕') totalScore += scorePerQuestion;
-      });
-      totalScore = Math.floor(totalScore); // 向下取整
-      if(totalScore > 100) totalScore = 100; // 防止超出100
-
       // 确定评分语气
       let scoreMessage = "";
+      let scoreClass = "";
       if(totalScore === 100) {
         scoreMessage = "满分！非常棒！";
+        scoreClass = "score-excellent";
       } else if(totalScore >= 90) {
         scoreMessage = "合格！继续加油！";
+        scoreClass = "score-good";
       } else {
         scoreMessage = "不合格，请继续努力！";
+        scoreClass = "score-bad";
       }
 
       // 计算完成度
-      const answeredQuestions = userAnswers.filter(ans => ans === '⭕' || ans === '❌').length;
+      const answeredQuestions = correctCount + incorrectCount;
       const completionPercentage = Math.floor((answeredQuestions / totalQuestions) * 100);
 
       // 更新进度条
@@ -977,8 +1084,12 @@
       // 显示结果
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
-      document.getElementById('score').innerText = `得分：${totalScore}分 - ${scoreMessage}`;
-      document.getElementById('mistake-count').innerText = `错题数：${incorrectCount}题`;
+      const scoreElem = document.getElementById('score');
+      scoreElem.innerText = `得分：${totalScore}分 - ${scoreMessage}`;
+      scoreElem.className = scoreClass; // 应用相应的样式类
+      document.getElementById('mistake-count').innerText = `做错：${incorrectCount}道`;
+      document.getElementById('correct-count').innerText = `做对：${correctCount}道`;
+      document.getElementById('unanswered-count').innerText = `未做：${unansweredCount}道`;
       document.getElementById('completion-status').innerText = `完成度：${answeredQuestions}/${totalQuestions}`;
 
       // 保存历史记录
@@ -987,6 +1098,8 @@
         dateTime: new Date().toLocaleString(),
         sheetName: currentSheetName,
         wrongCount: incorrectCount,
+        correctCount: correctCount,
+        unansweredCount: unansweredCount,
         timeSpent: timeSpentFormatted, // 格式化后的时间
         answered: answeredQuestions,
         total: totalQuestions,
@@ -1002,6 +1115,8 @@
         detail: {
           sheetName: currentSheetName,
           wrongCount: incorrectCount,
+          correctCount: correctCount,
+          unansweredCount: unansweredCount,
           timeSpent: timeSpentFormatted,
           answered: answeredQuestions,
           total: totalQuestions,
@@ -1035,6 +1150,8 @@
       document.getElementById('update-logs-container').style.display='none';
       document.getElementById('function-intro-container').style.display='none';
       document.getElementById('summary-container').style.display='none';
+      isBattleMode = false; // 退出大乱斗模式
+      fetchSheetNames(); // 重新加载套题选择
       if(loadCurrentExam()) {
         continueExamBtn.style.display = 'inline-block';
       } else {
@@ -1111,7 +1228,7 @@
           `<div><strong>套题：</strong>${sheetNameDisplay}</div>
            <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
-           <div><strong>您的最后错误答案：</strong>${uAnswer}</div>
+           <div><strong>您的最后错误答案：</strong>${item.userAnswer}</div>
            <div><strong>正确答案：</strong>${item.answer}</div>
            <div><strong>错误次数：</strong>${cCount}</div>`;
         mistakeContainer.appendChild(questionDiv);
@@ -1157,6 +1274,8 @@
           summaryBySheet[entry.sheetName] = {
             attempts: 0,
             totalWrong: 0,
+            totalCorrect: 0,
+            totalUnanswered: 0,
             totalTime: 0,
             lastCompletionTime: "",
             lastCompletion: {answered: 0, total: 0},
@@ -1166,6 +1285,8 @@
         }
         summaryBySheet[entry.sheetName].attempts += 1;
         summaryBySheet[entry.sheetName].totalWrong += entry.wrongCount;
+        summaryBySheet[entry.sheetName].totalCorrect += entry.correctCount;
+        summaryBySheet[entry.sheetName].totalUnanswered += entry.unansweredCount;
         // Convert timeSpent from "??分钟??秒" to total seconds
         const timeParts = entry.timeSpent.match(/(\d+)分钟(\d+)秒/);
         let totalSeconds = 0;
@@ -1179,6 +1300,8 @@
         summaryBySheet[entry.sheetName].individualPerformances.push({
           dateTime: entry.dateTime,
           wrongCount: entry.wrongCount,
+          correctCount: entry.correctCount,
+          unansweredCount: entry.unansweredCount,
           timeSpent: entry.timeSpent,
           answered: entry.answered,
           total: entry.total,
@@ -1191,6 +1314,8 @@
       for(const sheet in summaryBySheet) {
         const sheetData = summaryBySheet[sheet];
         const averageWrong = (sheetData.attempts > 0) ? (sheetData.totalWrong / sheetData.attempts).toFixed(2) : 0;
+        const averageCorrect = (sheetData.attempts > 0) ? (sheetData.totalCorrect / sheetData.attempts).toFixed(2) : 0;
+        const averageUnanswered = (sheetData.attempts > 0) ? (sheetData.totalUnanswered / sheetData.attempts).toFixed(2) : 0;
         const averageScore = (sheetData.scores.reduce((a, b) => a + b, 0) / sheetData.attempts).toFixed(2);
         const averageTimeMinutes = Math.floor(sheetData.totalTime / 60);
         const averageTimeSeconds = sheetData.totalTime % 60;
@@ -1201,7 +1326,9 @@
                   <table>
                     <tr>
                       <th>总练习次数</th>
-                      <th>平均错题数</th>
+                      <th>平均做错数</th>
+                      <th>平均做对数</th>
+                      <th>平均未做数</th>
                       <th>平均得分</th>
                       <th>平均花费时间</th>
                       <th>最近一次完成时间</th>
@@ -1210,6 +1337,8 @@
                     <tr>
                       <td>${sheetData.attempts}</td>
                       <td>${averageWrong}</td>
+                      <td>${averageCorrect}</td>
+                      <td>${averageUnanswered}</td>
                       <td>${averageScore}</td>
                       <td>${averageTimeFormatted}</td>
                       <td>${sheetData.lastCompletionTime}</td>
@@ -1220,7 +1349,9 @@
                   <table>
                     <tr>
                       <th>日期时间</th>
-                      <th>错题数</th>
+                      <th>做错数</th>
+                      <th>做对数</th>
+                      <th>未做数</th>
                       <th>花费时间</th>
                       <th>得分</th>
                       <th>完成度</th>
@@ -1229,6 +1360,8 @@
           html += `<tr>
                     <td>${perf.dateTime}</td>
                     <td>${perf.wrongCount}</td>
+                    <td>${perf.correctCount}</td>
+                    <td>${perf.unansweredCount}</td>
                     <td>${perf.timeSpent}</td>
                     <td>${perf.score}</td>
                     <td>${perf.answered}/${perf.total}</td>
@@ -1310,7 +1443,7 @@
             'quiz',
             log.time || '',
             log.location || '',
-            `Sheet: ${log.detail.sheetName}, Wrong: ${log.detail.wrongCount}, Time: ${log.detail.timeSpent}, Score: ${log.detail.score}`,
+            `Sheet: ${log.detail.sheetName}, Wrong: ${log.detail.wrongCount}, Correct: ${log.detail.correctCount}, Unanswered: ${log.detail.unansweredCount}, Time: ${log.detail.timeSpent}, Score: ${log.detail.score}`,
             'N/A',
             'N/A',
             'N/A',
@@ -1401,7 +1534,7 @@
         alert("没有未完成的考试记录");
         return;
       }
-      const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs, randomOrder: ro, autoNext: an, elapsedTime: et} = exam;
+      const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs, randomOrder: ro, autoNext: an, elapsedTime: et, isBattleMode: bm} = exam;
       const total = qs.length;
       const progress = idx + 1;
       const confirmContinue = confirm(`检测到您上次考试未完成（套题名称：${sheetName}，进度：${progress}/${total}），是否继续？`);
@@ -1412,7 +1545,9 @@
         questions = qs;
         randomOrder = ro;
         autoNext = an;
+        isBattleMode = bm;
         elapsedTime = et || 0; // 恢复已花费时间，避免NaN
+        randomCheckbox.checked = randomOrder; // 更新UI
         autoNextCheckbox.checked = autoNext; // 更新UI
         startQuizFromState();
       } else {
