@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>zalem.app</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background-color: #e9f5ff;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      background-color: #007BFF;
+      padding: 15px 0;
+      margin: 0;
+      cursor: pointer; /* 鼠标悬停时显示为手型 */
+    }
+
+    /* 域名、口号、标题的排版 */
+    h1 .domain {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    h1 .slogan {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+    h1 .title {
+      font-size: 15px; /* 缩小字体大小 */
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin: 15px 0;
+      font-size: 20px;
+    }
+
+    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container, #update-logs-container, #function-intro-container, #summary-container, #battle-mode-selection-container {
+      margin: 30px auto;
+      max-width: 800px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+      display: none; /* Hidden by default */
+    }
+
+    #container, #battle-mode-selection-container {
+      display: block; /* Show main container and battle mode selection by default */
+    }
+
+    #sheet-selection {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #sheet-selection button {
+      flex: 0 1 auto;
+      padding: 10px 15px;
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+    #sheet-selection button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    #info {
+      text-align: center;
+      margin-top: 20px;
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #info .top-buttons, #info .battle-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #info .bottom-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #info button {
+      padding: 10px 15px;
+      background: #4DAFFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    #info button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    #random-option {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    #random-option label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding:10px 20px;
+      border:2px solid #007BFF;
+      border-radius:5px;
+      background:#fff;
+    }
+    #random-option input[type="checkbox"] {
+      width:24px;
+      height:24px;
+      margin-right:10px;
+      vertical-align:middle;
+    }
+
+    #question {
+      font-size: 18px;
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #fdf8e4;
+      text-align: center;
+      min-height: 50px; 
+      line-height: 1.4;
+      white-space: pre-wrap; /* Preserve line breaks */
+    }
+
+    #image {
+      margin-bottom: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background-color: #f0f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 50px; 
+      padding: 10px;
+    }
+    #image img {
+      max-width: 100%;
+      max-height: 150px;
+      object-fit: contain;
+    }
+
+    .options, .controls {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .options button, .controls button {
+      flex: 1;
+      margin: 0 5px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      text-align: center;
+      white-space: nowrap;
+    }
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .correct {
+      background: #28a745; /* Green */
+      color: #fff;
+    }
+    .correct.highlight {
+      background: #1e7e34;
+      box-shadow: 0 0 10px #1e7e34;
+    }
+    .wrong {
+      background: #dc3545; /* Red */
+      color: #fff;
+    }
+    .wrong.highlight {
+      background: #c82333;
+      box-shadow: 0 0 10px #c82333;
+    }
+
+    #answer-display {
+      font-size: 18px;
+      font-weight: bold;
+      color: #FF4D4D;
+      margin-top: 10px;
+      text-align: center;
+      white-space: pre-wrap; /* Preserve line breaks */
+    }
+
+    #remaining-questions {
+      text-align: center; 
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    #mistake-questions > div, #current-mistakes-list > div {
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      line-height: 1.4;
+    }
+    #mistake-questions img, #current-mistakes-list img {
+      margin-top: 10px;
+      border-radius: 5px;
+      max-height:150px;
+      object-fit:contain;
+      max-width:100%;
+    }
+
+    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button, #update-logs-container button, #function-intro-container button, #summary-container button, #battle-mode-selection-container button {
+      margin-top: 10px;
+    }
+
+    #console-logs-content table {
+      width:100%;
+      border-collapse: collapse;
+      margin-top:20px;
+    }
+    #console-logs-content table, #console-logs-content th, #console-logs-content td {
+      border:1px solid #ccc;
+      padding:5px;
+      text-align:left;
+      font-size:14px;
+    }
+    #console-logs-content th {
+      background: #f9f9f9;
+    }
+
+    #update-logs-container, #function-intro-container, #summary-container, #battle-mode-selection-container {
+      display:none;
+    }
+
+    #update-logs-list, #summary-content {
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    /* Progress Bar Styles */
+    .progress-bar-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      border-radius: 25px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-bar {
+      height: 25px;
+      width: 0%;
+      background-color: #28a745;
+      text-align: center;
+      line-height: 25px;
+      color: white;
+      border-radius: 25px;
+      transition: width 0.5s ease-in-out;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    /* Summary Table Styles */
+    .summary-sheet {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      background-color: #f9f9f9;
+    }
+    .summary-sheet h3 {
+      margin-top: 0;
+    }
+    .summary-sheet table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .summary-sheet th, .summary-sheet td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    .summary-sheet th {
+      background-color: #f1f1f1;
+    }
+
+    /* Summary Performance Styles */
+    .individual-performance, .average-performance {
+      margin-bottom: 10px;
+    }
+    .individual-performance p, .average-performance p {
+      margin: 5px 0;
+    }
+
+    /* Timer Styles */
+    #timer {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 10px;
+      color: #333;
+    }
+
+    /* Score Message Styles */
+    .score-excellent {
+      color: #28a745; /* Green */
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .score-good {
+      color: #ffc107; /* Yellow */
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .score-bad {
+      color: #dc3545; /* Red */
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    /* Battle Mode Selection Styles */
+    #battle-mode-selection-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #battle-mode-selection {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+    }
+    #battle-mode-selection h3 {
+      margin-top: 0;
+    }
+    #battle-mode-selection .sheet-option {
+      margin-bottom: 10px;
+    }
+    #battle-mode-selection button {
+      margin-top: 10px;
+    }
+
+    /* Initial Message Area Styles */
+    #initial-message {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: #856404;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    #initial-message p {
+      margin: 10px 0;
+    }
+    #initial-message img {
+      display: block;
+      margin: 20px auto 10px auto;
+      max-width: 200px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- 大标题板块，包含域名/口号/标题 -->
+  <h1 onclick="resetQuiz()">
+    <div class="domain">zalem.app</div>
+    <div class="slogan">霓虹千里，始于足利，欢迎来到足利驾校！</div>
+    <div class="title">道路千万条，安全第一条；行车不规范，亲人泪两行！</div>
+  </h1>
+
+  <div id="container">
+    <!-- 优先级1: 套题板块 -->
+    <h2>请选择套题</h2>
+    <div id="random-option">
+      <label>
+        <input type="checkbox" id="random-checkbox"> 随机题序
+      </label>
+      <label>
+        <input type="checkbox" id="autonext-checkbox"> 自动翻题
+      </label>
+    </div>
+
+    <div id="sheet-selection">加载中...</div>
+    
+    <!-- 优先级1: 按钮群，包括大乱斗 -->
+    <div id="info">
+      <div class="top-buttons">
+        <button onclick="showSummary()" style="background: #17a2b8;">汇总表现</button>
+        <button onclick="startMistakeReview()">错题复习</button>
+        <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">继续考试</button>
+        <button onclick="openBattleModeSelection()" style="background: #6f42c1;">大乱斗</button>
+      </div>
+      <div class="bottom-buttons">
+        <button onclick="showFunctionIntro()">功能介绍</button>
+        <button onclick="showUpdateLogs()">更新日志</button>
+        <button onclick="viewConsoleLogs()">控制台</button>
+        <button onclick="clearAllHistory()">清除历史</button>
+      </div>
+    </div>
+
+    <!-- 增加大乱斗和留言框之间的空隙 -->
+    <div style="height: 20px;"></div>
+
+    <!-- 优先级2: 初始留言区域 -->
+    <div id="initial-message">
+      <!-- 动态内容将通过JavaScript填充 -->
+      <p>加载中...</p>
+    </div>
+  </div>
+
+  <!-- 大乱斗模式选择容器 -->
+  <div id="battle-mode-selection-container">
+    <div id="battle-mode-selection">
+      <h3>选择参与大乱斗的套题</h3>
+      <div id="battle-sheet-selection">
+        <!-- 动态生成套题复选框 -->
+      </div>
+      <button onclick="startBattleMode()">开始大乱斗</button>
+      <button onclick="closeBattleModeSelection()">取消</button>
+    </div>
+  </div>
+
+  <div id="quiz-container" style="display: none;">
+    <h2 id="sheet-name">加载中...</h2>
+    <div id="question">加载中...</div>
+    <div id="image" style="display:none;"></div>
+    <div class="options">
+      <button id="btn-correct" class="correct" onclick="selectAnswer('⭕')">⭕ 正确</button>
+      <button id="btn-wrong" class="wrong" onclick="selectAnswer('❌')">❌ 错误</button>
+    </div>
+    <div class="controls">
+      <button onclick="previousQuestion()">上一题</button>
+      <button onclick="nextQuestion()">下一题</button>
+    </div>
+    <div id="remaining-questions"></div>
+    <div id="timer">时间：00分钟00秒</div>
+    <div id="answer-display"></div>
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="toggleAnswer()">显示/隐藏 正确答案</button>
+      <button onclick="pauseExam()">暂停退出</button>
+      <button onclick="submitQuiz()">交卷</button>
+    </div>
+  </div>
+
+  <div id="result-container" style="display: none;">
+    <h2>考试结束</h2>
+    <div style="text-align: center;">
+      <p id="score" class="score-excellent" style="font-size: 32px; font-weight: bold; color: #28a745;"></p>
+      <p id="mistake-count" style="font-size: 20px; color: #dc3545;"></p>
+      <p id="correct-count" style="font-size: 20px; color: #28a745;"></p>
+      <p id="unanswered-count" style="font-size: 20px; color: #ffc107;"></p>
+      <p id="completion-status"></p>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progress-bar">0%</div>
+      </div>
+    </div>
+    <button onclick="resetQuiz()">再来一套</button>
+    <button onclick="viewMistakes()">查看本次错题</button>
+  </div>
+
+  <div id="current-mistakes-container" style="display:none;">
+    <h2>本次错题</h2>
+    <div id="current-mistakes-list"></div>
+    <button onclick="startMistakeReview()">复习错题</button>
+    <button onclick="showScore()">返回评分</button>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="mistake-review-container" style="display:none;">
+    <h2>错题复习</h2>
+    <div id="mistake-questions"></div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="console-logs-container" style="display:none;">
+    <h2>控制台</h2>
+    <div id="console-logs-content">加载中...</div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="update-logs-container" style="display:none;">
+    <h2>更新日志</h2>
+    <div id="update-logs-list">
+      <!-- 动态内容将通过JavaScript填充 -->
+      <p>加载中...</p>
+    </div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="function-intro-container" style="display:none;">
+    <h2>功能介绍</h2>
+    <div id="function-intro-content">
+      <!-- 动态内容将通过JavaScript填充 -->
+      <p>加载中...</p>
+    </div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <div id="summary-container" style="display:none;">
+    <h2>汇总表现</h2>
+    <div id="summary-content">加载中...</div>
+    <button onclick="resetQuiz()">返回首页</button>
+  </div>
+
+  <script>
+    /**************************************************
+     * 1) 旧的题库相关API配置（不变，继续使用原来权限）
+     **************************************************/
+    const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw"; 
+    const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
+
+    /**************************************************
+     * 2) 新的系统表格API配置（用于留言板、更新日志、功能介绍等）
+     **************************************************/
+    const systemApiKey = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    const systemSpreadsheetId = "1bkTNZje3ehMPn2-PNH-yLT1kPpRvs_HAfiYuPg2jA6w";
+    // 目标表：CN Sheet
+
+    let sheetNames = [];
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let currentSheetName = "";
+    let answerVisible = false;
+    let mistakeQuestions = [];
+    let logs = [];
+    let quizStartTime = null; // 记录考试开始时间
+    let quizEndTime = null;   // 记录考试结束时间
+    let timerInterval = null; // 计时器间隔
+    let elapsedTime = 0;      // 已经花费的时间（毫秒）
+    let userLocation = "未知地点"; // 用户位置
+    let isBattleMode = false; // 是否为大乱斗模式
+
+    let randomOrder = loadRandomOrderSetting();
+    let autoNext = loadAutoNextSetting();
+
+    // Wait for DOM to load before accessing elements
+    document.addEventListener('DOMContentLoaded', () => {
+      const randomCheckbox = document.getElementById('random-checkbox');
+      randomCheckbox.checked = randomOrder; 
+      randomCheckbox.addEventListener('change', () => {
+        randomOrder = randomCheckbox.checked;
+        saveRandomOrderSetting(randomOrder);
+      });
+
+      const autoNextCheckbox = document.getElementById('autonext-checkbox');
+      autoNextCheckbox.checked = autoNext;
+      autoNextCheckbox.addEventListener('change', () => {
+        autoNext = autoNextCheckbox.checked;
+        saveAutoNextSetting(autoNext);
+      });
+
+      const continueExamBtn = document.getElementById('continue-exam-btn');
+      const savedExam = loadCurrentExam();
+      if(savedExam) {
+        continueExamBtn.style.display = 'inline-block';
+      }
+
+      // 加载系统相关信息
+      loadInitialMessages();   // 留言板（CN!B列）
+      loadUpdateLogs();        // 更新日志（CN!C、D列）
+      loadFunctionIntro();     // 功能介绍（CN!E、F、G列）
+    });
+
+    getClientIPAndLogAccess();
+    fetchSheetNames();
+
+    // Handle beforeunload to save state
+    window.addEventListener('beforeunload', () => {
+      if(document.getElementById('quiz-container').style.display === 'block') {
+        saveCurrentExam();
+      }
+    });
+
+    function loadRandomOrderSetting() {
+      const setting = localStorage.getItem('randomOrder');
+      return setting === 'true'; 
+    }
+
+    function saveRandomOrderSetting(value) {
+      localStorage.setItem('randomOrder', value ? 'true' : 'false');
+    }
+
+    function loadAutoNextSetting() {
+      const setting = localStorage.getItem('autoNext');
+      return setting === 'true'; 
+    }
+
+    function saveAutoNextSetting(value) {
+      localStorage.setItem('autoNext', value ? 'true' : 'false');
+    }
+
+    function loadCurrentExam() {
+      const exam = localStorage.getItem('currentExam');
+      return exam ? JSON.parse(exam) : null;
+    }
+
+    function saveCurrentExam() {
+      const currentExam = {
+        sheetName: currentSheetName,
+        currentQuestionIndex,
+        userAnswers,
+        questions,
+        randomOrder,
+        autoNext,
+        elapsedTime,
+        isBattleMode
+      };
+      localStorage.setItem('currentExam', JSON.stringify(currentExam));
+    }
+
+    function clearCurrentExam() {
+      localStorage.removeItem('currentExam');
+      const continueExamBtn = document.getElementById('continue-exam-btn');
+      if (continueExamBtn) {
+        continueExamBtn.style.display = 'none';
+      }
+    }
+
+    async function getClientIPAndLogAccess() {
+      const visitTime = new Date().toLocaleString();
+      const deviceInfo = navigator.userAgent;
+      let ip = "未知IP";
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        ip = data.ip || "未知IP";
+      } catch(e) {
+        console.warn("获取IP失败:", e);
+      }
+      
+      // 获取地理位置信息
+      try {
+        const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+        const geoData = await geoRes.json();
+        if(geoData && geoData.city && geoData.country_name) {
+          userLocation = `${geoData.city}, ${geoData.country_name}`;
+        } else {
+          userLocation = "未知地点";
+        }
+      } catch(e) {
+        console.warn("获取地理位置信息失败:", e);
+        userLocation = "未知地点";
+      }
+
+      logs.push({
+        type: 'access',
+        time: visitTime,
+        location: userLocation,
+        detail: {
+          device: deviceInfo,
+          ip: ip
+        }
+      });
+    }
+
+    function loadMistakesFromCache() {
+      const mistakes = localStorage.getItem('mistakes');
+      return mistakes ? JSON.parse(mistakes) : {};
+    }
+
+    function saveMistakesToCache(mistakesObj) {
+      localStorage.setItem('mistakes', JSON.stringify(mistakesObj));
+    }
+
+    function loadQuizHistory() {
+      const history = localStorage.getItem('quizHistory');
+      return history ? JSON.parse(history) : [];
+    }
+
+    function saveQuizHistory(history) {
+      localStorage.setItem('quizHistory', JSON.stringify(history));
+    }
+
+    /*********************************************
+     * 不再过滤任何sheet，完整获取所有sheet名称
+     *********************************************/
+    async function fetchSheetNames() {
+      const selectionContainer = document.getElementById('sheet-selection');
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          selectionContainer.innerHTML = "<p>加载套题失败，请检查网络或配置。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.sheets) {
+          selectionContainer.innerHTML = "<p>未能获取套题，请检查Google Sheet配置。</p>";
+          return;
+        }
+        // 不再过滤任何 sheet
+        sheetNames = data.sheets.map(sheet => sheet.properties.title);
+
+        if(sheetNames.length === 0) {
+          selectionContainer.innerHTML = "<p>未找到任何套题。</p>";
+          return;
+        }
+        displaySheetSelection();
+        populateBattleModeSelection();
+      } catch (e) {
+        console.error(e);
+        selectionContainer.innerHTML = "<p>加载套题失败，请检查配置或控制台日志。</p>";
+      }
+    }
+
+    function assignSheetButtonColors() {
+      const history = loadQuizHistory();
+      sheetNames.forEach(sheet => {
+        const sheetHistory = history.filter(entry => entry.sheetName === sheet);
+        const totalAttempts = sheetHistory.length;
+        const totalWrong = sheetHistory.reduce((sum, entry) => sum + entry.wrongCount, 0);
+        const averageWrong = totalAttempts > 0 ? (totalWrong / totalAttempts) : 0;
+
+        // Determine color based on averageWrong and totalAttempts
+        let color = '#28a745'; // Green for low average wrong
+        if (averageWrong >= 5) {
+          color = '#dc3545'; // Red for high average wrong
+        } else if (averageWrong >= 1) {
+          color = '#ffc107'; // Yellow for medium average wrong
+        }
+
+        // If attempts are few, lean towards blue
+        if (totalAttempts <= 2) {
+          color = '#007bff'; // Blue for few attempts
+        }
+
+        // Assign color as background
+        const button = document.querySelector(`#sheet-selection button[data-sheet="${sheet}"]`);
+        if(button) {
+          button.style.backgroundColor = color;
+        }
+      });
+    }
+
+    function displaySheetSelection() {
+      const selectionContainer = document.getElementById('sheet-selection');
+      selectionContainer.innerHTML = "";
+      sheetNames.forEach(sheet => {
+        const button = document.createElement('button');
+        button.textContent = sheet;
+        button.setAttribute('data-sheet', sheet);
+        button.onclick = () => fetchQuestions(sheet);
+        selectionContainer.appendChild(button);
+      });
+      assignSheetButtonColors();
+    }
+
+    function populateBattleModeSelection() {
+      const battleSelectionContainer = document.getElementById('battle-sheet-selection');
+      battleSelectionContainer.innerHTML = "";
+      sheetNames.forEach(sheet => {
+        const div = document.createElement('div');
+        div.classList.add('sheet-option');
+        div.innerHTML = `
+          <label>
+            <input type="checkbox" value="${sheet}"> ${sheet}
+          </label>
+        `;
+        battleSelectionContainer.appendChild(div);
+      });
+    }
+
+    /************************************************
+     * 考题数据获取（仍旧使用原有题库的表格和权限）
+     ************************************************/
+    async function fetchQuestions(sheetName) {
+      const sheetNameElem = document.getElementById('sheet-name');
+      const questionElem = document.getElementById('question');
+      sheetNameElem.textContent = "加载中...";
+      questionElem.textContent = "加载中...";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          sheetNameElem.textContent = `加载套题[${sheetName}]失败`;
+          questionElem.textContent = "";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length < 1) {
+          sheetNameElem.textContent = `套题[${sheetName}]数据为空`;
+          questionElem.textContent = "";
+          return;
+        }
+        currentSheetName = sheetName;
+        isBattleMode = false; // 不是大乱斗模式
+        questions = processSheetData(data.values);
+        if(randomOrder) {
+          questions = shuffle(questions);
+        }
+        startQuiz();
+      } catch(e) {
+        console.error(e);
+        sheetNameElem.textContent = `加载套题[${sheetName}]异常`;
+        questionElem.textContent = "";
+      }
+    }
+
+    async function startBattleMode() {
+      const battleSelectionContainer = document.getElementById('battle-sheet-selection');
+      const selectedSheets = Array.from(battleSelectionContainer.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+      if(selectedSheets.length === 0) {
+        alert("请至少选择一个套题进行大乱斗！");
+        return;
+      }
+
+      let numQuestions = prompt("请输入大乱斗题数（10-500）：", "50");
+      if (numQuestions === null) {
+        // 用户取消输入
+        return;
+      }
+      numQuestions = parseInt(numQuestions);
+      if (isNaN(numQuestions) || numQuestions < 10 || numQuestions > 500) {
+        alert("请输入一个有效的数字，范围在10到500之间。");
+        return;
+      }
+
+      // Close the battle mode selection modal
+      closeBattleModeSelection();
+
+      const sheetSelectionContainer = document.getElementById('sheet-selection');
+      sheetSelectionContainer.innerHTML = "<p>加载大乱斗套题中...</p>";
+      try {
+        let allQuestions = [];
+        for(const sheet of selectedSheets) {
+          const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheet)}?key=${apiKey}`;
+          const sheetResponse = await fetch(sheetUrl);
+          if(sheetResponse.ok) {
+            const sheetData = await sheetResponse.json();
+            if(sheetData.values && sheetData.values.length >=1) {
+              const processed = processSheetData(sheetData.values);
+              allQuestions = allQuestions.concat(processed);
+            }
+          }
+        }
+        if(allQuestions.length === 0) {
+          sheetSelectionContainer.innerHTML = "<p>大乱斗套题没有题目。</p>";
+          return;
+        }
+        if(allQuestions.length < numQuestions) {
+          alert(`可用题目数为${allQuestions.length}，将使用所有题目。`);
+          numQuestions = allQuestions.length;
+        }
+        currentSheetName = "大乱斗套题";
+        isBattleMode = true;
+        questions = shuffle(allQuestions).slice(0, numQuestions);
+        if(randomOrder) {
+          questions = shuffle(questions);
+        }
+        startQuiz();
+      } catch(e) {
+        console.error(e);
+        sheetSelectionContainer.innerHTML = "<p>加载大乱斗套题失败，请检查配置或控制台日志。</p>";
+      }
+    }
+
+    function openBattleModeSelection() {
+      document.getElementById('battle-mode-selection-container').style.display = 'flex';
+    }
+
+    function closeBattleModeSelection() {
+      document.getElementById('battle-mode-selection-container').style.display = 'none';
+    }
+
+    function processSheetData(values) {
+      return values.map((row, idx) => {
+        let qText = row[1] ? row[1] : "";
+        qText = qText.replace(/\u200B/g, '').trim();
+
+        if (!qText) {
+          const time = new Date().toLocaleString();
+          const rowNumber = idx + 1;
+          const colNumber = 2;
+          logs.push({
+            type: 'error',
+            time: time,
+            location: userLocation,
+            detail: {
+              message: "无题目数据",
+              sheet: currentSheetName,
+              row: rowNumber,
+              col: colNumber,
+              questionData: row
+            }
+          });
+          console.log(`无题目数据行: Sheet=${currentSheetName}, Row=${rowNumber}, Col=${colNumber}, 原始数据:`, row);
+        }
+        const qImage = row[2] ? row[2].trim() : "";
+        const qExplanation = row[7] ? row[7].trim() : ""; // 新增解释列（H列，索引7）
+        return {
+          question: qText || "无题目",
+          image: qImage,
+          answer: row[8] === "o" ? "⭕" : "❌",
+          explanation: qExplanation || "" // 允许为空
+        };
+      }).filter(q => q.question !== "无题目"); // 过滤掉无题目
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startQuiz() {
+      currentQuestionIndex = 0;
+      userAnswers = [];
+      answerVisible = false;
+      mistakeQuestions = [];
+      elapsedTime = 0; // 重置已花费时间
+      clearCurrentExam();
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
+      loadQuestion();
+      startTimer(); // 启动计时器
+    }
+
+    function startQuizFromState() {
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `当前套题：${currentSheetName}`;
+      loadQuestion();
+      startTimer(); // 启动计时器
+    }
+
+    function loadQuestion() {
+      const q = questions[currentQuestionIndex];
+      const questionElem = document.getElementById('question');
+      const imageContainer = document.getElementById('image');
+      
+      questionElem.textContent = "加载中...";
+      imageContainer.style.display='none';
+      imageContainer.innerHTML = '';
+
+      setTimeout(() => {
+        questionElem.innerText = q.question;
+        resetButtonHighlight();
+        const ans = userAnswers[currentQuestionIndex];
+        if(ans === '⭕') {
+          document.getElementById('btn-correct').classList.add('highlight');
+        } else if(ans === '❌') {
+          document.getElementById('btn-wrong').classList.add('highlight');
+        }
+        updateRemainingQuestions();
+      }, 200);
+
+      if (q.image) {
+        imageContainer.style.display='flex';
+        imageContainer.innerText = "加载中...";
+        const img = new Image();
+        img.src = q.image;
+        img.onload = () => {
+          imageContainer.innerHTML = '';
+          imageContainer.appendChild(img);
+        };
+        img.onerror = () => {
+          console.log("图片加载失败：", q.image);
+          imageContainer.innerHTML = '';
+          imageContainer.style.display='none';
+        }
+      } else {
+        imageContainer.style.display='none';
+        imageContainer.innerHTML = '';
+      }
+
+      if (q.explanation) {
+        document.getElementById('answer-display').innerText = "";
+      } else {
+        document.getElementById('answer-display').innerText = "";
+      }
+      saveCurrentExam();
+    }
+
+    function updateRemainingQuestions() {
+      const remaining = questions.length - currentQuestionIndex - 1;
+      document.getElementById('remaining-questions').innerText = `剩余题数：${remaining}`;
+    }
+
+    function selectAnswer(answer) {
+      userAnswers[currentQuestionIndex] = answer;
+      resetButtonHighlight();
+      if (answer === '⭕') document.getElementById('btn-correct').classList.add('highlight');
+      if (answer === '❌') document.getElementById('btn-wrong').classList.add('highlight');
+      saveCurrentExam();
+
+      if(autoNext) {
+        setTimeout(() => {
+          if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            loadQuestion();
+          } else {
+            // 如果是最后一道题，提示交卷
+            alert('已到最后一题，请交卷。');
+          }
+        }, 300);
+      }
+
+      // 如果是最后一道题并且自动翻题开启，自动提示交卷
+      if(autoNext && currentQuestionIndex === questions.length -1) {
+        setTimeout(() => {
+          submitQuiz();
+        }, 500);
+      }
+    }
+
+    function resetButtonHighlight() {
+      document.getElementById('btn-correct').classList.remove('highlight');
+      document.getElementById('btn-wrong').classList.remove('highlight');
+    }
+
+    function toggleAnswer() {
+      const correctAnswer = questions[currentQuestionIndex].answer;
+      const explanation = questions[currentQuestionIndex].explanation;
+      if (answerVisible) {
+        document.getElementById('answer-display').innerText = "";
+      } else {
+        if (explanation) {
+          document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}\n解说：${explanation}`;
+        } else {
+          document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}`;
+        }
+      }
+      answerVisible = !answerVisible;
+    }
+
+    function nextQuestion() {
+      if (currentQuestionIndex < questions.length - 1) {
+        currentQuestionIndex++;
+        loadQuestion();
+      } else {
+        alert('已到最后一题，请交卷。');
+      }
+    }
+
+    function previousQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion();
+      }
+    }
+
+    function allQuestionsAnswered() {
+      return questions.every((q, i) => {
+        const ans = userAnswers[i];
+        return ans === '⭕' || ans === '❌';
+      });
+    }
+
+    function submitQuiz() {
+      let confirmation = true;
+      if (!allQuestionsAnswered()) {
+        confirmation = confirm("未完成所有题目，确定要交卷吗？");
+      }
+      if (!confirmation) {
+        return;
+      }
+
+      stopTimer(); // 停止计时器
+      quizEndTime = new Date(); // 结束计时
+      const timeSpentMs = quizEndTime - quizStartTime + elapsedTime;
+      const timeSpentMinutes = Math.floor(timeSpentMs / 60000);
+      const timeSpentSeconds = Math.floor((timeSpentMs % 60000) / 1000);
+      const timeSpentFormatted = `${timeSpentMinutes}分钟${timeSpentSeconds}秒`;
+
+      let incorrectCount = 0;
+      let correctCount = 0;
+      let unansweredCount = 0;
+      let mistakesObj = loadMistakesFromCache();
+      mistakeQuestions = [];
+
+      const totalQuestions = questions.length;
+      const scorePerQuestion = 100 / totalQuestions;
+      let totalScore = 0;
+
+      questions.forEach((q, index) => {
+        const userAnswer = userAnswers[index];
+        if (userAnswer === undefined) {
+          unansweredCount++;
+        } else if (userAnswer === q.answer) {
+          correctCount++;
+          totalScore += scorePerQuestion;
+        } else {
+          incorrectCount++;
+          const key = q.question + '||' + q.answer + '||' + q.image + '||' + q.explanation;
+          if (mistakesObj[key]) {
+            mistakesObj[key].count += 1;
+            mistakesObj[key].userAnswer = userAnswer;
+            if(!mistakesObj[key].sheetName) {
+              mistakesObj[key].sheetName = currentSheetName;
+            }
+          } else {
+            mistakesObj[key] = {
+              question: q.question,
+              image: q.image,
+              answer: q.answer,
+              explanation: q.explanation,
+              count: 1,
+              userAnswer: userAnswer,
+              sheetName: currentSheetName
+            };
+          }
+
+          mistakeQuestions.push({
+            question: q.question,
+            image: q.image,
+            answer: q.answer,
+            explanation: q.explanation,
+            userAnswer: userAnswer,
+            sheetName: currentSheetName
+          });
+        }
+      });
+
+      totalScore = Math.floor(totalScore);
+      if(totalScore > 100) totalScore = 100;
+
+      saveMistakesToCache(mistakesObj);
+      clearCurrentExam(); 
+
+      let scoreMessage = "";
+      let scoreClass = "";
+      if(totalScore === 100) {
+        scoreMessage = "满分！非常棒！";
+        scoreClass = "score-excellent";
+      } else if(totalScore >= 90) {
+        scoreMessage = "合格！继续加油！";
+        scoreClass = "score-good";
+      } else {
+        scoreMessage = "不合格，请继续努力！";
+        scoreClass = "score-bad";
+      }
+
+      const answeredQuestions = correctCount + incorrectCount;
+      const completionPercentage = Math.floor((answeredQuestions / totalQuestions) * 100);
+
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = `${completionPercentage}%`;
+      progressBar.innerText = `${completionPercentage}%`;
+      progressBar.style.backgroundColor = completionPercentage >= 90 ? '#28a745' :
+                                         completionPercentage >= 70 ? '#ffc107' :
+                                         '#dc3545';
+
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'block';
+      const scoreElem = document.getElementById('score');
+      scoreElem.innerText = `得分：${totalScore}分 - ${scoreMessage}`;
+      scoreElem.className = scoreClass; 
+      document.getElementById('mistake-count').innerText = `做错：${incorrectCount}道`;
+      document.getElementById('correct-count').innerText = `做对：${correctCount}道`;
+      document.getElementById('unanswered-count').innerText = `未做：${unansweredCount}道`;
+      document.getElementById('completion-status').innerText = `完成度：${answeredQuestions}/${totalQuestions}`;
+
+      const history = loadQuizHistory();
+      history.push({
+        dateTime: new Date().toLocaleString(),
+        sheetName: currentSheetName,
+        wrongCount: incorrectCount,
+        correctCount: correctCount,
+        unansweredCount: unansweredCount,
+        timeSpent: timeSpentFormatted,
+        answered: answeredQuestions,
+        total: totalQuestions,
+        score: totalScore
+      });
+      saveQuizHistory(history);
+
+      logs.push({
+        type: 'quiz',
+        time: new Date().toLocaleString(),
+        location: userLocation,
+        detail: {
+          sheetName: currentSheetName,
+          wrongCount: incorrectCount,
+          correctCount: correctCount,
+          unansweredCount: unansweredCount,
+          timeSpent: timeSpentFormatted,
+          answered: answeredQuestions,
+          total: totalQuestions,
+          score: totalScore
+        }
+      });
+    }
+
+    function pauseExam() {
+      stopTimer();
+      const now = new Date();
+      elapsedTime += now - quizStartTime;
+      saveCurrentExam();
+      alert("考试进度已保存，下次可继续当前考试！");
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('container').style.display = 'block';
+      if(loadCurrentExam()) {
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'inline-block';
+        }
+      }
+    }
+
+    function resetQuiz() {
+      stopTimer();
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('container').style.display = 'block';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      isBattleMode = false;
+      fetchSheetNames();
+      if(loadCurrentExam()) {
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'inline-block';
+        }
+      } else {
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'none';
+        }
+      }
+    }
+
+    function viewMistakes() {
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('current-mistakes-container').style.display = 'block';
+      const mistakeContainer = document.getElementById('current-mistakes-list');
+      mistakeContainer.innerHTML = '';
+
+      if (mistakeQuestions.length === 0) {
+        mistakeContainer.innerHTML = "<p>本次没有错题</p>";
+        return;
+      }
+
+      mistakeQuestions.forEach((item, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.style.paddingBottom = "10px";
+
+        let imgHTML = '';
+        if (item.image) {
+          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
+        }
+
+        let explanationHTML = '';
+        if (item.explanation) {
+          explanationHTML = `<div><strong>解说：</strong>${item.explanation}</div>`;
+        }
+
+        questionDiv.innerHTML =
+          `<div><strong>套题：</strong>${item.sheetName || "无记录"}</div>
+           <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+           ${imgHTML}
+           <div><strong>您的错误答案：</strong>${item.userAnswer}</div>
+           <div><strong>正确答案：</strong>${item.answer}</div>
+           ${explanationHTML}`;
+        mistakeContainer.appendChild(questionDiv);
+      });
+    }
+
+    function startMistakeReview() {
+      const mistakesObj = loadMistakesFromCache();
+      const keys = Object.keys(mistakesObj);
+      if (keys.length === 0) {
+        alert("没有错题记录");
+        return;
+      }
+
+      stopTimer();
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('current-mistakes-container').style.display = 'none';
+      document.getElementById('console-logs-container').style.display = 'none';
+      document.getElementById('update-logs-container').style.display = 'none';
+      document.getElementById('function-intro-container').style.display = 'none';
+      document.getElementById('summary-container').style.display = 'none';
+      document.getElementById('mistake-review-container').style.display = 'block';
+
+      const mistakeContainer = document.getElementById('mistake-questions');
+      mistakeContainer.innerHTML = '';
+
+      keys.forEach((key, index) => {
+        const item = mistakesObj[key];
+        const uAnswer = item.userAnswer || "无记录";
+        const cCount = (item.count !== undefined) ? item.count : "无记录";
+        const sheetNameDisplay = item.sheetName || "无记录";
+
+        const questionDiv = document.createElement('div');
+
+        let imgHTML = '';
+        if (item.image) {
+          imgHTML = `<div><img src="${item.image}" alt="题目图片" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
+        }
+
+        let explanationHTML = '';
+        if (item.explanation) {
+          explanationHTML = `<div><strong>解说：</strong>${item.explanation}</div>`;
+        }
+
+        questionDiv.innerHTML =
+          `<div><strong>套题：</strong>${sheetNameDisplay}</div>
+           <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
+           ${imgHTML}
+           <div><strong>您的最后错误答案：</strong>${uAnswer}</div>
+           <div><strong>正确答案：</strong>${item.answer}</div>
+           ${explanationHTML}
+           <div><strong>错误次数：</strong>${cCount}</div>`;
+        mistakeContainer.appendChild(questionDiv);
+      });
+    }
+
+    function showFunctionIntro() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='block';
+    }
+
+    function showSummary() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='block';
+
+      const summaryContent = document.getElementById('summary-content');
+      summaryContent.innerHTML = "加载中...";
+
+      const history = loadQuizHistory();
+      if(history.length === 0) {
+        summaryContent.innerHTML = "<p>暂无做题历史记录。</p>";
+        return;
+      }
+
+      // 汇总数据按套题分类
+      const summaryBySheet = {};
+      history.forEach(entry => {
+        if(!summaryBySheet[entry.sheetName]) {
+          summaryBySheet[entry.sheetName] = {
+            attempts: 0,
+            totalWrong: 0,
+            totalCorrect: 0,
+            totalUnanswered: 0,
+            totalTime: 0,
+            lastCompletionTime: "",
+            lastCompletion: {answered: 0, total: 0},
+            scores: [],
+            individualPerformances: []
+          };
+        }
+        summaryBySheet[entry.sheetName].attempts += 1;
+        summaryBySheet[entry.sheetName].totalWrong += entry.wrongCount;
+        summaryBySheet[entry.sheetName].totalCorrect += entry.correctCount;
+        summaryBySheet[entry.sheetName].totalUnanswered += entry.unansweredCount;
+        const timeParts = entry.timeSpent.match(/(\d+)分钟(\d+)秒/);
+        let totalSeconds = 0;
+        if(timeParts) {
+          totalSeconds = parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]);
+        }
+        summaryBySheet[entry.sheetName].totalTime += totalSeconds;
+        summaryBySheet[entry.sheetName].lastCompletionTime = entry.dateTime;
+        summaryBySheet[entry.sheetName].lastCompletion = {answered: entry.answered, total: entry.total};
+        summaryBySheet[entry.sheetName].scores.push(entry.score);
+        summaryBySheet[entry.sheetName].individualPerformances.push({
+          dateTime: entry.dateTime,
+          wrongCount: entry.wrongCount,
+          correctCount: entry.correctCount,
+          unansweredCount: entry.unansweredCount,
+          timeSpent: entry.timeSpent,
+          answered: entry.answered,
+          total: entry.total,
+          score: entry.score
+        });
+      });
+
+      let html = "";
+      for(const sheet in summaryBySheet) {
+        const sheetData = summaryBySheet[sheet];
+        const averageWrong = (sheetData.attempts > 0) ? (sheetData.totalWrong / sheetData.attempts).toFixed(2) : 0;
+        const averageCorrect = (sheetData.attempts > 0) ? (sheetData.totalCorrect / sheetData.attempts).toFixed(2) : 0;
+        const averageUnanswered = (sheetData.attempts > 0) ? (sheetData.totalUnanswered / sheetData.attempts).toFixed(2) : 0;
+        const averageScore = (sheetData.scores.reduce((a, b) => a + b, 0) / sheetData.attempts).toFixed(2);
+        const averageTimeMinutes = Math.floor(sheetData.totalTime / 60);
+        const averageTimeSeconds = sheetData.totalTime % 60;
+        const averageTimeFormatted = `${averageTimeMinutes}分钟${averageTimeSeconds}秒`;
+
+        html += `<div class="summary-sheet">
+                  <h3>套题：${sheet}</h3>
+                  <table>
+                    <tr>
+                      <th>总练习次数</th>
+                      <th>平均做错数</th>
+                      <th>平均做对数</th>
+                      <th>平均未做数</th>
+                      <th>平均得分</th>
+                      <th>平均花费时间</th>
+                      <th>最近一次完成时间</th>
+                      <th>最近一次完成度</th>
+                    </tr>
+                    <tr>
+                      <td>${sheetData.attempts}</td>
+                      <td>${averageWrong}</td>
+                      <td>${averageCorrect}</td>
+                      <td>${averageUnanswered}</td>
+                      <td>${averageScore}</td>
+                      <td>${averageTimeFormatted}</td>
+                      <td>${sheetData.lastCompletionTime}</td>
+                      <td>${sheetData.lastCompletion.answered}/${sheetData.lastCompletion.total}</td>
+                    </tr>
+                  </table>
+                  <h4>每次做题表现：</h4>
+                  <table>
+                    <tr>
+                      <th>日期时间</th>
+                      <th>做错数</th>
+                      <th>做对数</th>
+                      <th>未做数</th>
+                      <th>花费时间</th>
+                      <th>得分</th>
+                      <th>完成度</th>
+                    </tr>`;
+        sheetData.individualPerformances.forEach(perf => {
+          html += `<tr>
+                    <td>${perf.dateTime}</td>
+                    <td>${perf.wrongCount}</td>
+                    <td>${perf.correctCount}</td>
+                    <td>${perf.unansweredCount}</td>
+                    <td>${perf.timeSpent}</td>
+                    <td>${perf.score}</td>
+                    <td>${perf.answered}/${perf.total}</td>
+                  </tr>`;
+        });
+        html += `</table>
+                </div>`;
+      }
+
+      summaryContent.innerHTML = html;
+    }
+
+    function showScore() {
+      document.getElementById('current-mistakes-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'block';
+    }
+
+    function clearAllHistory() {
+      const confirmClear = confirm("清除历史会导致错题集、未完成考试记录和相关设置全部清空，确定要清除吗？");
+      if(confirmClear) {
+        localStorage.clear();
+        alert("历史记录已清除");
+        resetQuiz();
+      }
+    }
+
+    function showUpdateLogs() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='block';
+    }
+
+    async function viewConsoleLogs() {
+      const password = prompt("请输入查看日志的密码：");
+      if (password === "Aa123456") {
+        try {
+          await recordLogsToSheet();
+        } catch(e) {
+          console.error("写入日志到Google Sheet失败:", e);
+        }
+        showConsoleLogsFromSheet();
+      } else {
+        alert("密码错误！");
+      }
+    }
+
+    async function recordLogsToSheet() {
+      const values = logs.map(log => {
+        if (log.type === 'access') {
+          return [
+            'access',
+            log.time || '',
+            log.location || '',
+            log.detail.device || '',
+            log.detail.ip || '',
+            'N/A',
+            'N/A',
+            'N/A'
+          ];
+        } else if (log.type === 'error') {
+          return [
+            'error',
+            log.time || '',
+            log.location || '',
+            log.detail.message || '',
+            log.detail.sheet || '',
+            log.detail.row || '',
+            log.detail.col || '',
+            JSON.stringify(log.detail.questionData || '')
+          ];
+        } else if (log.type === 'quiz') {
+          return [
+            'quiz',
+            log.time || '',
+            log.location || '',
+            `Sheet: ${log.detail.sheetName}, Wrong: ${log.detail.wrongCount}, Correct: ${log.detail.correctCount}, Unanswered: ${log.detail.unansweredCount}, Time: ${log.detail.timeSpent}, Score: ${log.detail.score}`,
+            'N/A',
+            'N/A',
+            'N/A',
+            'N/A'
+          ];
+        }
+      });
+
+      if(values.length === 0) {
+        return;
+      }
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A1:append?valueInputOption=RAW&key=${apiKey}`;
+      const body = {values: values};
+      await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+
+      logs = [];
+    }
+
+    async function showConsoleLogsFromSheet() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='block';
+
+      const consoleLogsContent = document.getElementById('console-logs-content');
+      consoleLogsContent.textContent = "加载中...";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A:Z?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          consoleLogsContent.innerHTML = "<p>加载日志失败</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length <= 1) {
+          consoleLogsContent.innerHTML = "<p>暂无日志记录</p>";
+          return;
+        }
+
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["类型","时间","地点","设备/消息","IP","Row","Col","QuestionData"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => {
+          const tr = document.createElement('tr');
+          headers.forEach((h, i) => {
+            const td = document.createElement('td');
+            td.textContent = rowArr[i] || "";
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        consoleLogsContent.innerHTML = '';
+        consoleLogsContent.appendChild(table);
+
+      } catch(e) {
+        console.error(e);
+        consoleLogsContent.innerHTML = "<p>加载日志出现异常</p>";
+      }
+    }
+
+    function continueExam() {
+      const exam = loadCurrentExam();
+      if(!exam) {
+        alert("没有未完成的考试记录");
+        return;
+      }
+      const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs, randomOrder: ro, autoNext: an, elapsedTime: et, isBattleMode: bm} = exam;
+      const total = qs.length;
+      const progress = idx + 1;
+      const confirmContinue = confirm(`检测到您上次考试未完成（套题名称：${sheetName}，进度：${progress}/${total}），是否继续？`);
+      if(confirmContinue) {
+        currentSheetName = sheetName;
+        currentQuestionIndex = idx;
+        userAnswers = ua;
+        questions = qs;
+        randomOrder = ro;
+        autoNext = an;
+        isBattleMode = bm;
+        elapsedTime = et || 0;
+        const randomCheckbox = document.getElementById('random-checkbox');
+        if (randomCheckbox) {
+          randomCheckbox.checked = randomOrder;
+        }
+        const autoNextCheckbox = document.getElementById('autonext-checkbox');
+        if (autoNextCheckbox) {
+          autoNextCheckbox.checked = autoNext;
+        }
+        startQuizFromState();
+      } else {
+        clearCurrentExam();
+      }
+    }
+
+    function startTimer() {
+      const timerElem = document.getElementById('timer');
+      quizStartTime = new Date();
+      timerInterval = setInterval(() => {
+        const now = new Date();
+        const elapsed = now - quizStartTime + elapsedTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        timerElem.innerText = `时间：${String(minutes).padStart(2, '0')}分钟${String(seconds).padStart(2, '0')}秒`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    // 尝试点击二维码图片时触发的逻辑
+    function triggerScan() {
+      const qrImage = document.querySelector('#initial-message img');
+      if(qrImage) {
+        window.open(qrImage.src, '_blank');
+      }
+    }
+
+    /*****************************
+     * 从新表格 (CN) 加载“留言板”内容(B列)
+     *****************************/
+    async function loadInitialMessages() {
+      const initialMessageContainer = document.getElementById('initial-message');
+      initialMessageContainer.innerHTML = "<p>加载中...</p>";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/CN!B1:B5?key=${systemApiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          initialMessageContainer.innerHTML = "<p>无法加载留言内容。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length === 0) {
+          initialMessageContainer.innerHTML = "<p>暂无留言内容。</p>";
+          return;
+        }
+
+        // 清空并重新构建留言内容
+        initialMessageContainer.innerHTML = "";
+
+        // B1~B4 为文本
+        data.values.slice(0,4).forEach((row) => {
+          const message = row[0] ? row[0].trim() : "";
+          if(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            initialMessageContainer.appendChild(p);
+          }
+        });
+
+        // B5 为二维码链接
+        if(data.values.length >=5) {
+          const qrUrl = data.values[4][0] ? data.values[4][0].trim() : "";
+          if(qrUrl) {
+            const img = document.createElement('img');
+            img.src = qrUrl;
+            img.alt = "加入社区二维码";
+            img.onclick = triggerScan;
+            initialMessageContainer.appendChild(img);
+          }
+        }
+
+      } catch(e) {
+        console.error("加载留言内容失败:", e);
+        initialMessageContainer.innerHTML = "<p>加载留言内容出现错误。</p>";
+      }
+    }
+
+    /*****************************
+     * 从新表格 (CN) 加载“更新日志”(C、D列)
+     *****************************/
+    async function loadUpdateLogs() {
+      const updateLogsContainer = document.getElementById('update-logs-list');
+      updateLogsContainer.innerHTML = "<p>加载中...</p>";
+
+      try {
+        // CN!C1:D  => C列：日期；D列：更新内容
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/CN!C1:D?key=${systemApiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          updateLogsContainer.innerHTML = "<p>无法加载更新日志。</p>";
+          return;
+        }
+        const data = await response.json();
+        // 第一行可能是标题，也可能没有，保留判断
+        if(!data.values || data.values.length < 2 ) {
+          updateLogsContainer.innerHTML = "<p>暂无更新日志。</p>";
+          return;
+        }
+
+        // 清空并重新构建更新日志内容
+        updateLogsContainer.innerHTML = "";
+        const table = document.createElement('table');
+
+        // 创建表头（2列）
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["日期","更新内容"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => {
+          const cDate = rowArr[0] ? rowArr[0].trim() : "";
+          const cUpdate = rowArr[1] ? rowArr[1].trim() : "";
+          if(cDate || cUpdate) {
+            const tr = document.createElement('tr');
+            const tdDate = document.createElement('td');
+            tdDate.textContent = cDate;
+            const tdContent = document.createElement('td');
+            tdContent.textContent = cUpdate;
+            tr.appendChild(tdDate);
+            tr.appendChild(tdContent);
+            tbody.appendChild(tr);
+          }
+        });
+
+        if(tbody.children.length === 0) {
+          updateLogsContainer.innerHTML = "<p>暂无更新日志。</p>";
+        } else {
+          table.appendChild(tbody);
+          updateLogsContainer.appendChild(table);
+        }
+
+      } catch(e) {
+        console.error("加载更新日志失败:", e);
+        updateLogsContainer.innerHTML = "<p>加载更新日志出现错误。</p>";
+      }
+    }
+
+    /*****************************
+     * 从新表格 (CN) 加载“功能介绍”(E、F、G列)
+     *****************************/
+    async function loadFunctionIntro() {
+      const functionIntroContainer = document.getElementById('function-intro-content');
+      functionIntroContainer.innerHTML = "<p>加载中...</p>";
+
+      try {
+        // CN!E1:G => E列：功能名称；F列：功能描述；G列：备注
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/CN!E1:G?key=${systemApiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          functionIntroContainer.innerHTML = "<p>无法加载功能介绍。</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length < 2 ) {
+          functionIntroContainer.innerHTML = "<p>暂无功能介绍。</p>";
+          return;
+        }
+
+        functionIntroContainer.innerHTML = "";
+        const table = document.createElement('table');
+
+        // 创建表头（3列）
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["功能名称","功能描述","备注"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => {
+          const featureName = rowArr[0] ? rowArr[0].trim() : "";
+          const featureDesc = rowArr[1] ? rowArr[1].trim() : "";
+          const remarks = rowArr[2] ? rowArr[2].trim() : "";
+
+          if(featureName || featureDesc || remarks) {
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.textContent = featureName;
+            const tdDesc = document.createElement('td');
+            tdDesc.textContent = featureDesc;
+            const tdRemarks = document.createElement('td');
+            tdRemarks.textContent = remarks;
+            tr.appendChild(tdName);
+            tr.appendChild(tdDesc);
+            tr.appendChild(tdRemarks);
+            tbody.appendChild(tr);
+          }
+        });
+
+        if(tbody.children.length === 0) {
+          functionIntroContainer.innerHTML = "<p>暂无功能介绍。</p>";
+        } else {
+          table.appendChild(tbody);
+          functionIntroContainer.appendChild(table);
+        }
+
+      } catch(e) {
+        console.error("加载功能介绍失败:", e);
+        functionIntroContainer.innerHTML = "<p>加载功能介绍出现错误。</p>";
+      }
+    }
+  </script>
+</body>
+</html>
