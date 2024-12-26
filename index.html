@@ -403,23 +403,6 @@
       max-width: 200px;
       cursor: pointer;
     }
-    /* 删除下载按钮的相关样式 */
-    /* #initial-message .download-button {
-      display: block;
-      margin: 0 auto;
-      padding: 10px 20px;
-      background-color: #007BFF;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      text-decoration: none;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    #initial-message .download-button:hover {
-      background-color: #0056b3;
-    } */
   </style>
 </head>
 <body>
@@ -565,8 +548,19 @@
   </div>
 
   <script>
-    const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw"; // 请确保API密钥正确且具有访问权限
-    const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64"; // 请确保Spreadsheet ID正确
+    /**************************************************
+     * 1) 旧的题库相关API配置（不变，继续使用原来权限）
+     **************************************************/
+    const apiKey = "AIzaSyC_fcYBMTNaPt0u6qAvpn_73LlKwJbZ3Yw"; 
+    const spreadsheetId = "1kiLBE8arF8OJyaAcO2AB_Jjd6_QNQQ1FbPp6Pn9CB64";
+
+    /**************************************************
+     * 2) 新的系统表格API配置（用于留言板、更新日志、功能介绍等）
+     **************************************************/
+    const systemApiKey = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    const systemSpreadsheetId = "1bkTNZje3ehMPn2-PNH-yLT1kPpRvs_HAfiYuPg2jA6w";
+    // 目标表：CN Sheet
+
     let sheetNames = [];
     let questions = [];
     let currentQuestionIndex = 0;
@@ -607,10 +601,10 @@
         continueExamBtn.style.display = 'inline-block';
       }
 
-      // Load dynamic content
-      loadInitialMessages();
-      loadUpdateLogs();
-      loadFunctionIntro();
+      // 加载系统相关信息
+      loadInitialMessages();   // 留言板（CN!B列）
+      loadUpdateLogs();        // 更新日志（CN!C、D列）
+      loadFunctionIntro();     // 功能介绍（CN!E、F、G列）
     });
 
     getClientIPAndLogAccess();
@@ -723,6 +717,9 @@
       localStorage.setItem('quizHistory', JSON.stringify(history));
     }
 
+    /*********************************************
+     * 不再过滤任何sheet，完整获取所有sheet名称
+     *********************************************/
     async function fetchSheetNames() {
       const selectionContainer = document.getElementById('sheet-selection');
       try {
@@ -737,10 +734,9 @@
           selectionContainer.innerHTML = "<p>未能获取套题，请检查Google Sheet配置。</p>";
           return;
         }
-        // 排除特定Sheet
-        sheetNames = data.sheets
-          .map(sheet => sheet.properties.title)
-          .filter(name => !["Console", "留言板", "更新日志", "功能介绍"].includes(name));
+        // 不再过滤任何 sheet
+        sheetNames = data.sheets.map(sheet => sheet.properties.title);
+
         if(sheetNames.length === 0) {
           selectionContainer.innerHTML = "<p>未找到任何套题。</p>";
           return;
@@ -788,11 +784,11 @@
       sheetNames.forEach(sheet => {
         const button = document.createElement('button');
         button.textContent = sheet;
-        button.setAttribute('data-sheet', sheet); // 添加自定义属性用于颜色分配
+        button.setAttribute('data-sheet', sheet);
         button.onclick = () => fetchQuestions(sheet);
         selectionContainer.appendChild(button);
       });
-      assignSheetButtonColors(); // 调用颜色分配函数
+      assignSheetButtonColors();
     }
 
     function populateBattleModeSelection() {
@@ -810,6 +806,9 @@
       });
     }
 
+    /************************************************
+     * 考题数据获取（仍旧使用原有题库的表格和权限）
+     ************************************************/
     async function fetchQuestions(sheetName) {
       const sheetNameElem = document.getElementById('sheet-name');
       const questionElem = document.getElementById('question');
@@ -1043,14 +1042,14 @@
             // 如果是最后一道题，提示交卷
             alert('已到最后一题，请交卷。');
           }
-        }, 300); // 延迟以便用户看到选择的高亮效果
+        }, 300);
       }
 
       // 如果是最后一道题并且自动翻题开启，自动提示交卷
       if(autoNext && currentQuestionIndex === questions.length -1) {
         setTimeout(() => {
           submitQuiz();
-        }, 500); // 延迟以便用户看到选择的高亮效果
+        }, 500);
       }
     }
 
@@ -1108,7 +1107,7 @@
 
       stopTimer(); // 停止计时器
       quizEndTime = new Date(); // 结束计时
-      const timeSpentMs = quizEndTime - quizStartTime + elapsedTime; // 计算时间，毫秒
+      const timeSpentMs = quizEndTime - quizStartTime + elapsedTime;
       const timeSpentMinutes = Math.floor(timeSpentMs / 60000);
       const timeSpentSeconds = Math.floor((timeSpentMs % 60000) / 1000);
       const timeSpentFormatted = `${timeSpentMinutes}分钟${timeSpentSeconds}秒`;
@@ -1162,14 +1161,12 @@
         }
       });
 
-      // 计算总分，向下取整
       totalScore = Math.floor(totalScore);
-      if(totalScore > 100) totalScore = 100; // 防止超出100
+      if(totalScore > 100) totalScore = 100;
 
       saveMistakesToCache(mistakesObj);
       clearCurrentExam(); 
 
-      // 确定评分语气
       let scoreMessage = "";
       let scoreClass = "";
       if(totalScore === 100) {
@@ -1183,30 +1180,26 @@
         scoreClass = "score-bad";
       }
 
-      // 计算完成度
       const answeredQuestions = correctCount + incorrectCount;
       const completionPercentage = Math.floor((answeredQuestions / totalQuestions) * 100);
 
-      // 更新进度条
       const progressBar = document.getElementById('progress-bar');
       progressBar.style.width = `${completionPercentage}%`;
       progressBar.innerText = `${completionPercentage}%`;
       progressBar.style.backgroundColor = completionPercentage >= 90 ? '#28a745' :
                                          completionPercentage >= 70 ? '#ffc107' :
-                                         '#dc3545'; // 绿色、黄色、红色
+                                         '#dc3545';
 
-      // 显示结果
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
       const scoreElem = document.getElementById('score');
       scoreElem.innerText = `得分：${totalScore}分 - ${scoreMessage}`;
-      scoreElem.className = scoreClass; // 应用相应的样式类
+      scoreElem.className = scoreClass; 
       document.getElementById('mistake-count').innerText = `做错：${incorrectCount}道`;
       document.getElementById('correct-count').innerText = `做对：${correctCount}道`;
       document.getElementById('unanswered-count').innerText = `未做：${unansweredCount}道`;
       document.getElementById('completion-status').innerText = `完成度：${answeredQuestions}/${totalQuestions}`;
 
-      // 保存历史记录
       const history = loadQuizHistory();
       history.push({
         dateTime: new Date().toLocaleString(),
@@ -1214,14 +1207,13 @@
         wrongCount: incorrectCount,
         correctCount: correctCount,
         unansweredCount: unansweredCount,
-        timeSpent: timeSpentFormatted, // 格式化后的时间
+        timeSpent: timeSpentFormatted,
         answered: answeredQuestions,
         total: totalQuestions,
         score: totalScore
       });
       saveQuizHistory(history);
 
-      // 记录日志
       logs.push({
         type: 'quiz',
         time: new Date().toLocaleString(),
@@ -1240,11 +1232,10 @@
     }
 
     function pauseExam() {
-      stopTimer(); // 停止计时器
-      // 计算已花费时间
+      stopTimer();
       const now = new Date();
       elapsedTime += now - quizStartTime;
-      saveCurrentExam(); // 保存进度和已花费时间
+      saveCurrentExam();
       alert("考试进度已保存，下次可继续当前考试！");
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
@@ -1257,7 +1248,7 @@
     }
 
     function resetQuiz() {
-      stopTimer(); // 停止计时器
+      stopTimer();
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'none';
       document.getElementById('container').style.display = 'block';
@@ -1267,8 +1258,8 @@
       document.getElementById('update-logs-container').style.display='none';
       document.getElementById('function-intro-container').style.display='none';
       document.getElementById('summary-container').style.display='none';
-      isBattleMode = false; // 退出大乱斗模式
-      fetchSheetNames(); // 重新加载套题选择
+      isBattleMode = false;
+      fetchSheetNames();
       if(loadCurrentExam()) {
         const continueExamBtn = document.getElementById('continue-exam-btn');
         if (continueExamBtn) {
@@ -1326,7 +1317,7 @@
         return;
       }
 
-      stopTimer(); // 停止计时器
+      stopTimer();
       document.getElementById('container').style.display = 'none';
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'none';
@@ -1362,7 +1353,7 @@
           `<div><strong>套题：</strong>${sheetNameDisplay}</div>
            <div><strong>题目 ${index + 1}：</strong>${item.question}</div>
            ${imgHTML}
-           <div><strong>您的最后错误答案：</strong>${item.userAnswer}</div>
+           <div><strong>您的最后错误答案：</strong>${uAnswer}</div>
            <div><strong>正确答案：</strong>${item.answer}</div>
            ${explanationHTML}
            <div><strong>错误次数：</strong>${cCount}</div>`;
@@ -1422,7 +1413,6 @@
         summaryBySheet[entry.sheetName].totalWrong += entry.wrongCount;
         summaryBySheet[entry.sheetName].totalCorrect += entry.correctCount;
         summaryBySheet[entry.sheetName].totalUnanswered += entry.unansweredCount;
-        // Convert timeSpent from "??分钟??秒" to total seconds
         const timeParts = entry.timeSpent.match(/(\d+)分钟(\d+)秒/);
         let totalSeconds = 0;
         if(timeParts) {
@@ -1444,7 +1434,6 @@
         });
       });
 
-      // 生成HTML内容
       let html = "";
       for(const sheet in summaryBySheet) {
         const sheetData = summaryBySheet[sheet];
@@ -1599,7 +1588,6 @@
         body: JSON.stringify(body)
       });
 
-      // 清空日志数组
       logs = [];
     }
 
@@ -1625,7 +1613,7 @@
           return;
         }
         const data = await response.json();
-        if(!data.values || data.values.length <= 1) { // 假设第一行是标题
+        if(!data.values || data.values.length <= 1) {
           consoleLogsContent.innerHTML = "<p>暂无日志记录</p>";
           return;
         }
@@ -1643,7 +1631,7 @@
         table.appendChild(thead);
 
         const tbody = document.createElement('tbody');
-        data.values.slice(1).forEach((rowArr) => { // 跳过标题行
+        data.values.slice(1).forEach((rowArr) => {
           const tr = document.createElement('tr');
           headers.forEach((h, i) => {
             const td = document.createElement('td');
@@ -1681,14 +1669,14 @@
         randomOrder = ro;
         autoNext = an;
         isBattleMode = bm;
-        elapsedTime = et || 0; // 恢复已花费时间，避免NaN
+        elapsedTime = et || 0;
         const randomCheckbox = document.getElementById('random-checkbox');
         if (randomCheckbox) {
-          randomCheckbox.checked = randomOrder; // 更新UI
+          randomCheckbox.checked = randomOrder;
         }
         const autoNextCheckbox = document.getElementById('autonext-checkbox');
         if (autoNextCheckbox) {
-          autoNextCheckbox.checked = autoNext; // 更新UI
+          autoNextCheckbox.checked = autoNext;
         }
         startQuizFromState();
       } else {
@@ -1712,23 +1700,23 @@
       clearInterval(timerInterval);
     }
 
-    // Function to trigger QR code scan (attempt)
+    // 尝试点击二维码图片时触发的逻辑
     function triggerScan() {
-      // 直接打开二维码图片以便用户扫描
       const qrImage = document.querySelector('#initial-message img');
       if(qrImage) {
         window.open(qrImage.src, '_blank');
       }
     }
 
-    // Dynamic content loading functions
-
+    /*****************************
+     * 从新表格 (CN) 加载“留言板”内容(B列)
+     *****************************/
     async function loadInitialMessages() {
       const initialMessageContainer = document.getElementById('initial-message');
       initialMessageContainer.innerHTML = "<p>加载中...</p>";
 
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/留言板!B1:B5?key=${apiKey}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/CN!B1:B5?key=${systemApiKey}`;
         const response = await fetch(url);
         if(!response.ok) {
           initialMessageContainer.innerHTML = "<p>无法加载留言内容。</p>";
@@ -1743,9 +1731,9 @@
         // 清空并重新构建留言内容
         initialMessageContainer.innerHTML = "";
 
-        // B1至B4为留言内容
-        data.values.slice(0,4).forEach((row, index) => {
-          const message = row[0].trim();
+        // B1~B4 为文本
+        data.values.slice(0,4).forEach((row) => {
+          const message = row[0] ? row[0].trim() : "";
           if(message) {
             const p = document.createElement('p');
             p.textContent = message;
@@ -1753,9 +1741,9 @@
           }
         });
 
-        // B5为二维码链接
+        // B5 为二维码链接
         if(data.values.length >=5) {
-          const qrUrl = data.values[4][0].trim();
+          const qrUrl = data.values[4][0] ? data.values[4][0].trim() : "";
           if(qrUrl) {
             const img = document.createElement('img');
             img.src = qrUrl;
@@ -1771,19 +1759,24 @@
       }
     }
 
+    /*****************************
+     * 从新表格 (CN) 加载“更新日志”(C、D列)
+     *****************************/
     async function loadUpdateLogs() {
       const updateLogsContainer = document.getElementById('update-logs-list');
       updateLogsContainer.innerHTML = "<p>加载中...</p>";
 
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/更新日志!A:C?key=${apiKey}`;
+        // CN!C1:D  => C列：日期；D列：更新内容
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/CN!C1:D?key=${systemApiKey}`;
         const response = await fetch(url);
         if(!response.ok) {
           updateLogsContainer.innerHTML = "<p>无法加载更新日志。</p>";
           return;
         }
         const data = await response.json();
-        if(!data.values || data.values.length <=1 ) { // 假设第一行是标题
+        // 第一行可能是标题，也可能没有，保留判断
+        if(!data.values || data.values.length < 2 ) {
           updateLogsContainer.innerHTML = "<p>暂无更新日志。</p>";
           return;
         }
@@ -1792,10 +1785,10 @@
         updateLogsContainer.innerHTML = "";
         const table = document.createElement('table');
 
-        // 创建表头
+        // 创建表头（2列）
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-        const headers = ["事件时间","事件内容","备注"];
+        const headers = ["日期","更新内容"];
         headers.forEach(h => {
           const th = document.createElement('th');
           th.textContent = h;
@@ -1804,24 +1797,18 @@
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-        // 创建表格主体
         const tbody = document.createElement('tbody');
-        data.values.slice(1).forEach((rowArr) => { // 跳过标题行
-          const eventTime = rowArr[0] ? rowArr[0].trim() : "";
-          const eventContent = rowArr[1] ? rowArr[1].trim() : "";
-          const remarks = rowArr[2] ? rowArr[2].trim() : "";
-
-          if(eventTime || eventContent || remarks) {
+        data.values.slice(1).forEach((rowArr) => {
+          const cDate = rowArr[0] ? rowArr[0].trim() : "";
+          const cUpdate = rowArr[1] ? rowArr[1].trim() : "";
+          if(cDate || cUpdate) {
             const tr = document.createElement('tr');
-            const tdTime = document.createElement('td');
-            tdTime.textContent = eventTime;
+            const tdDate = document.createElement('td');
+            tdDate.textContent = cDate;
             const tdContent = document.createElement('td');
-            tdContent.textContent = eventContent;
-            const tdRemarks = document.createElement('td');
-            tdRemarks.textContent = remarks;
-            tr.appendChild(tdTime);
+            tdContent.textContent = cUpdate;
+            tr.appendChild(tdDate);
             tr.appendChild(tdContent);
-            tr.appendChild(tdRemarks);
             tbody.appendChild(tr);
           }
         });
@@ -1839,28 +1826,31 @@
       }
     }
 
+    /*****************************
+     * 从新表格 (CN) 加载“功能介绍”(E、F、G列)
+     *****************************/
     async function loadFunctionIntro() {
       const functionIntroContainer = document.getElementById('function-intro-content');
       functionIntroContainer.innerHTML = "<p>加载中...</p>";
 
       try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/功能介绍!A:C?key=${apiKey}`;
+        // CN!E1:G => E列：功能名称；F列：功能描述；G列：备注
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/CN!E1:G?key=${systemApiKey}`;
         const response = await fetch(url);
         if(!response.ok) {
           functionIntroContainer.innerHTML = "<p>无法加载功能介绍。</p>";
           return;
         }
         const data = await response.json();
-        if(!data.values || data.values.length <=1 ) { // 假设第一行是标题
+        if(!data.values || data.values.length < 2 ) {
           functionIntroContainer.innerHTML = "<p>暂无功能介绍。</p>";
           return;
         }
 
-        // 清空并重新构建功能介绍内容
         functionIntroContainer.innerHTML = "";
         const table = document.createElement('table');
 
-        // 创建表头
+        // 创建表头（3列）
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
         const headers = ["功能名称","功能描述","备注"];
@@ -1872,9 +1862,8 @@
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-        // 创建表格主体
         const tbody = document.createElement('tbody');
-        data.values.slice(1).forEach((rowArr) => { // 跳过标题行
+        data.values.slice(1).forEach((rowArr) => {
           const featureName = rowArr[0] ? rowArr[0].trim() : "";
           const featureDesc = rowArr[1] ? rowArr[1].trim() : "";
           const remarks = rowArr[2] ? rowArr[2].trim() : "";
