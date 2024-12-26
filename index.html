@@ -18,56 +18,64 @@
     }
     .brand-image {
       width: 100%;
-      height: auto;
+      height: 50vh;
+      object-fit: cover;
     }
     .language-buttons {
       position: absolute;
-      top: 50%;
+      bottom: 10%;
       left: 50%;
-      transform: translate(-50%, -50%);
+      transform: translateX(-50%);
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      flex-direction: column;
       gap: 15px;
+      align-items: center;
     }
     .language-btn {
-      padding: 15px 30px;
+      width: 180px;
+      padding: 15px 0;
       font-size: 16px;
       color: #fff;
-      background-color: #007BFF;
+      background: linear-gradient(145deg, #007BFF, #0056b3);
       border: none;
-      border-radius: 5px;
+      border-radius: 25px;
+      text-align: center;
       text-decoration: none;
       cursor: pointer;
-      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .language-btn:hover {
-      background-color: #0056b3;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
     }
     .language-btn.jp {
-      background-color: #ff6f61;
+      background: linear-gradient(145deg, #ff6f61, #e0554a);
     }
     .language-btn.cn {
-      background-color: #4caf50;
+      background: linear-gradient(145deg, #4caf50, #388e3c);
     }
     .language-btn.en {
-      background-color: #2196f3;
+      background: linear-gradient(145deg, #2196f3, #1976d2);
     }
     .language-btn.vn {
-      background-color: #ff9800;
+      background: linear-gradient(145deg, #ff9800, #e68900);
     }
     .language-btn.kr {
-      background-color: #9c27b0;
+      background: linear-gradient(145deg, #9c27b0, #7b1fa2);
     }
     .slogan {
       position: absolute;
-      top: 10%;
+      top: 5%;
       left: 50%;
       transform: translateX(-50%);
       color: white;
       font-size: 24px;
       font-weight: bold;
       text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+      background-color: rgba(0, 0, 0, 0.4);
+      padding: 10px 20px;
+      border-radius: 15px;
     }
   </style>
 </head>
