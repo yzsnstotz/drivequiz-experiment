@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>zalem.app - VN</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background-color: #e9f5ff;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      color: #fff;
+      background-color: #007BFF;
+      padding: 15px 0;
+      margin: 0;
+      cursor: pointer; /* Khi di chuột vào sẽ có dạng tay */
+    }
+
+    /* Domain, Slogan, Title */
+    h1 .domain {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    h1 .slogan {
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+    h1 .title {
+      font-size: 15px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin: 15px 0;
+      font-size: 20px;
+    }
+
+    #container, 
+    #quiz-container, 
+    #result-container, 
+    #mistake-review-container, 
+    #current-mistakes-container, 
+    #console-logs-container, 
+    #update-logs-container, 
+    #function-intro-container, 
+    #summary-container, 
+    #battle-mode-selection-container {
+      margin: 30px auto;
+      max-width: 800px;
+      border: 2px solid #ddd;
+      border-radius: 10px;
+      background-color: #fff;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 20px;
+      display: none; /* Mặc định ẩn */
+    }
+
+    #container, #battle-mode-selection-container {
+      display: block; /* Hiển thị container chính và chế độ "Battle" theo mặc định */
+    }
+
+    #sheet-selection {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    #sheet-selection button {
+      flex: 0 1 auto;
+      padding: 10px 15px;
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+    #sheet-selection button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    #info {
+      text-align: center;
+      margin-top: 20px;
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #info .top-buttons, 
+    #info .battle-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #info .bottom-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    #info button {
+      padding: 10px 15px;
+      background: #4DAFFF;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    #info button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    #random-option {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    #random-option label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding:10px 20px;
+      border:2px solid #007BFF;
+      border-radius:5px;
+      background:#fff;
+    }
+    #random-option input[type="checkbox"] {
+      width:24px;
+      height:24px;
+      margin-right:10px;
+      vertical-align:middle;
+    }
+
+    #question {
+      font-size: 18px;
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #fdf8e4;
+      text-align: center;
+      min-height: 50px; 
+      line-height: 1.4;
+      white-space: pre-wrap; /* Giữ nguyên xuống dòng */
+    }
+
+    #image {
+      margin-bottom: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background-color: #f0f8ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 50px; 
+      padding: 10px;
+    }
+    #image img {
+      max-width: 100%;
+      max-height: 150px;
+      object-fit: contain;
+    }
+
+    .options, .controls {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 15px;
+    }
+    .options button, .controls button {
+      flex: 1;
+      margin: 0 5px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+      text-align: center;
+      white-space: nowrap;
+    }
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    .correct {
+      background: #28a745; /* Xanh lá */
+      color: #fff;
+    }
+    .correct.highlight {
+      background: #1e7e34;
+      box-shadow: 0 0 10px #1e7e34;
+    }
+    .wrong {
+      background: #dc3545; /* Đỏ */
+      color: #fff;
+    }
+    .wrong.highlight {
+      background: #c82333;
+      box-shadow: 0 0 10px #c82333;
+    }
+
+    #answer-display {
+      font-size: 18px;
+      font-weight: bold;
+      color: #FF4D4D;
+      margin-top: 10px;
+      text-align: center;
+      white-space: pre-wrap;
+    }
+
+    #remaining-questions {
+      text-align: center; 
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+    }
+
+    #mistake-questions > div, 
+    #current-mistakes-list > div {
+      border-bottom: 1px solid #ccc;
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      line-height: 1.4;
+    }
+    #mistake-questions img, 
+    #current-mistakes-list img {
+      margin-top: 10px;
+      border-radius: 5px;
+      max-height:150px;
+      object-fit:contain;
+      max-width:100%;
+    }
+
+    #mistake-review-container button, 
+    #current-mistakes-container button, 
+    #console-logs-container button, 
+    #update-logs-container button, 
+    #function-intro-container button, 
+    #summary-container button, 
+    #battle-mode-selection-container button {
+      margin-top: 10px;
+    }
+
+    #console-logs-content table {
+      width:100%;
+      border-collapse: collapse;
+      margin-top:20px;
+    }
+    #console-logs-content table, 
+    #console-logs-content th, 
+    #console-logs-content td {
+      border:1px solid #ccc;
+      padding:5px;
+      text-align:left;
+      font-size:14px;
+    }
+    #console-logs-content th {
+      background: #f9f9f9;
+    }
+
+    #update-logs-container, 
+    #function-intro-container, 
+    #summary-container, 
+    #battle-mode-selection-container {
+      display:none;
+    }
+
+    #update-logs-list, 
+    #summary-content {
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    /* Thanh tiến trình */
+    .progress-bar-container {
+      width: 100%;
+      background-color: #e0e0e0;
+      border-radius: 25px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-bar {
+      height: 25px;
+      width: 0%;
+      background-color: #28a745;
+      text-align: center;
+      line-height: 25px;
+      color: white;
+      border-radius: 25px;
+      transition: width 0.5s ease-in-out;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    /* Bảng thống kê */
+    .summary-sheet {
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      background-color: #f9f9f9;
+    }
+    .summary-sheet h3 {
+      margin-top: 0;
+    }
+    .summary-sheet table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .summary-sheet th, 
+    .summary-sheet td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    .summary-sheet th {
+      background-color: #f1f1f1;
+    }
+
+    /* Thông báo điểm */
+    .score-excellent {
+      color: #28a745; /* Xanh lá */
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .score-good {
+      color: #ffc107; /* Vàng */
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .score-bad {
+      color: #dc3545; /* Đỏ */
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    /* Đồng hồ đếm giờ */
+    #timer {
+      text-align: center;
+      font-size: 18px;
+      margin-top: 10px;
+      color: #333;
+    }
+
+    /* Hộp thoại chế độ Battle */
+    #battle-mode-selection-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    #battle-mode-selection {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80%;
+      overflow-y: auto;
+    }
+    #battle-mode-selection h3 {
+      margin-top: 0;
+    }
+    #battle-mode-selection .sheet-option {
+      margin-bottom: 10px;
+    }
+    #battle-mode-selection button {
+      margin-top: 10px;
+    }
+
+    /* Khu vực thông điệp ban đầu */
+    #initial-message {
+      background-color: #fff3cd;
+      border: 1px solid #ffeeba;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: #856404;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    #initial-message p {
+      margin: 10px 0;
+    }
+    #initial-message img {
+      display: block;
+      margin: 20px auto 10px auto;
+      max-width: 200px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- Tiêu đề chính: Domain / Slogan / Title -->
+  <h1 onclick="resetQuiz()">
+    <div class="domain">zalem.app</div>
+    <div class="slogan">Ánh đèn neon trải dài nghìn dặm, bắt đầu từ Ashikaga. Chào mừng đến với Trường Lái xe Ashikaga!</div>
+    <div class="title">Có hàng ngàn con đường, nhưng an toàn là trên hết. Nếu bạn lái xe bất cẩn, người thân sẽ phải rơi lệ!</div>
+  </h1>
+
+  <div id="container">
+    <!-- Ưu tiên 1: Chọn sheet -->
+    <h2>Vui lòng chọn đề thi</h2>
+    <div id="random-option">
+      <label>
+        <input type="checkbox" id="random-checkbox"> Thứ tự ngẫu nhiên
+      </label>
+      <label>
+        <input type="checkbox" id="autonext-checkbox"> Tự động chuyển câu hỏi
+      </label>
+    </div>
+
+    <div id="sheet-selection">Đang tải...</div>
+    
+    <!-- Ưu tiên 1: Nhóm nút (bao gồm chế độ Battle) -->
+    <div id="info">
+      <div class="top-buttons">
+        <button onclick="showSummary()" style="background: #17a2b8;">Tổng kết kết quả</button>
+        <button onclick="startMistakeReview()">Xem & ôn lỗi</button>
+        <button id="continue-exam-btn" style="display:none;" onclick="continueExam()">Tiếp tục bài thi</button>
+        <button onclick="openBattleModeSelection()" style="background: #6f42c1;">Chế độ Battle</button>
+      </div>
+      <div class="bottom-buttons">
+        <button onclick="showFunctionIntro()">Giới thiệu tính năng</button>
+        <button onclick="showUpdateLogs()">Nhật ký cập nhật</button>
+        <button onclick="viewConsoleLogs()">Nhật ký Console</button>
+        <button onclick="clearAllHistory()">Xoá lịch sử</button>
+      </div>
+    </div>
+
+    <!-- Chèn khoảng trống -->
+    <div style="height: 20px;"></div>
+
+    <!-- Ưu tiên 2: Khu vực thông điệp ban đầu -->
+    <div id="initial-message">
+      <!-- Nội dung sẽ được load bằng JS -->
+      <p>Đang tải...</p>
+    </div>
+  </div>
+
+  <!-- Hộp thoại Chế độ Battle -->
+  <div id="battle-mode-selection-container">
+    <div id="battle-mode-selection">
+      <h3>Chọn đề để đấu Battle</h3>
+      <div id="battle-sheet-selection">
+        <!-- Sẽ được JS tạo động -->
+      </div>
+      <button onclick="startBattleMode()">Bắt đầu Battle</button>
+      <button onclick="closeBattleModeSelection()">Hủy</button>
+    </div>
+  </div>
+
+  <div id="quiz-container" style="display: none;">
+    <h2 id="sheet-name">Đang tải...</h2>
+    <div id="question">Đang tải...</div>
+    <div id="image" style="display:none;"></div>
+    <div class="options">
+      <button id="btn-correct" class="correct" onclick="selectAnswer('⭕')">⭕ Đúng</button>
+      <button id="btn-wrong" class="wrong" onclick="selectAnswer('❌')">❌ Sai</button>
+    </div>
+    <div class="controls">
+      <button onclick="previousQuestion()">Câu trước</button>
+      <button onclick="nextQuestion()">Câu kế</button>
+    </div>
+    <div id="remaining-questions"></div>
+    <div id="timer">Thời gian: 00p00s</div>
+    <div id="answer-display"></div>
+    <div style="text-align: center; margin-top: 20px;">
+      <button onclick="toggleAnswer()">Hiện/Ẩn đáp án</button>
+      <button onclick="pauseExam()">Tạm dừng & Thoát</button>
+      <button onclick="submitQuiz()">Nộp bài</button>
+    </div>
+  </div>
+
+  <div id="result-container" style="display: none;">
+    <h2>Kết thúc bài thi</h2>
+    <div style="text-align: center;">
+      <p id="score" class="score-excellent" style="font-size: 32px; font-weight: bold; color: #28a745;"></p>
+      <p id="mistake-count" style="font-size: 20px; color: #dc3545;"></p>
+      <p id="correct-count" style="font-size: 20px; color: #28a745;"></p>
+      <p id="unanswered-count" style="font-size: 20px; color: #ffc107;"></p>
+      <p id="completion-status"></p>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progress-bar">0%</div>
+      </div>
+    </div>
+    <button onclick="resetQuiz()">Làm lại</button>
+    <button onclick="viewMistakes()">Xem lỗi sai</button>
+  </div>
+
+  <div id="current-mistakes-container" style="display:none;">
+    <h2>Lỗi sai trong bài thi này</h2>
+    <div id="current-mistakes-list"></div>
+    <button onclick="startMistakeReview()">Ôn tập lỗi đã lưu</button>
+    <button onclick="showScore()">Quay lại điểm số</button>
+    <button onclick="resetQuiz()">Về trang chính</button>
+  </div>
+
+  <div id="mistake-review-container" style="display:none;">
+    <h2>Ôn tập lỗi đã lưu</h2>
+    <div id="mistake-questions"></div>
+    <button onclick="resetQuiz()">Về trang chính</button>
+  </div>
+
+  <div id="console-logs-container" style="display:none;">
+    <h2>Nhật ký Console</h2>
+    <div id="console-logs-content">Đang tải...</div>
+    <button onclick="resetQuiz()">Về trang chính</button>
+  </div>
+
+  <div id="update-logs-container" style="display:none;">
+    <h2>Nhật ký cập nhật</h2>
+    <div id="update-logs-list">
+      <!-- Nội dung load bằng JS -->
+      <p>Đang tải...</p>
+    </div>
+    <button onclick="resetQuiz()">Về trang chính</button>
+  </div>
+
+  <div id="function-intro-container" style="display:none;">
+    <h2>Giới thiệu tính năng</h2>
+    <div id="function-intro-content">
+      <!-- Nội dung load bằng JS -->
+      <p>Đang tải...</p>
+    </div>
+    <button onclick="resetQuiz()">Về trang chính</button>
+  </div>
+
+  <div id="summary-container" style="display:none;">
+    <h2>Tổng kết kết quả thi</h2>
+    <div id="summary-content">Đang tải...</div>
+    <button onclick="resetQuiz()">Về trang chính</button>
+  </div>
+
+  <script>
+    /**************************************************
+     * 1) Thông tin API cho đề thi (tiếng Việt)
+     **************************************************/
+    const apiKey = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    // ID bảng tính cho đề thi tiếng Việt
+    const spreadsheetId = "1D0odWDVfg2Y3DR_TvezzL9V4kvTtE02QxV75OH0Lw3E";
+
+    /**************************************************
+     * 2) Bảng tính hệ thống (VN) dùng để lấy dữ liệu phụ
+     **************************************************/
+    const systemApiKey = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    // ID bảng tính hệ thống
+    const systemSpreadsheetId = "1bkTNZje3ehMPn2-PNH-yLT1kPpRvs_HAfiYuPg2jA6w";
+    // Sử dụng trang VN trong bảng tính hệ thống
+    // VN!B: Tin nhắn ban đầu
+    // VN!C, VN!D: Nhật ký cập nhật
+    // VN!E, VN!F, VN!G: Giới thiệu tính năng
+
+    let sheetNames = [];
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    let currentSheetName = "";
+    let answerVisible = false;
+    let mistakeQuestions = [];
+    let logs = [];
+    let quizStartTime = null; 
+    let quizEndTime = null;   
+    let timerInterval = null; 
+    let elapsedTime = 0;      
+    let userLocation = "Không rõ địa điểm";
+    let isBattleMode = false; 
+
+    let randomOrder = loadRandomOrderSetting();
+    let autoNext = loadAutoNextSetting();
+
+    // Sự kiện DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+      const randomCheckbox = document.getElementById('random-checkbox');
+      randomCheckbox.checked = randomOrder; 
+      randomCheckbox.addEventListener('change', () => {
+        randomOrder = randomCheckbox.checked;
+        saveRandomOrderSetting(randomOrder);
+      });
+
+      const autoNextCheckbox = document.getElementById('autonext-checkbox');
+      autoNextCheckbox.checked = autoNext;
+      autoNextCheckbox.addEventListener('change', () => {
+        autoNext = autoNextCheckbox.checked;
+        saveAutoNextSetting(autoNext);
+      });
+
+      const continueExamBtn = document.getElementById('continue-exam-btn');
+      const savedExam = loadCurrentExam();
+      if(savedExam) {
+        continueExamBtn.style.display = 'inline-block';
+      }
+
+      // Tải dữ liệu từ bảng tính hệ thống
+      loadInitialMessages();  
+      loadUpdateLogs();       
+      loadFunctionIntro();    
+    });
+
+    getClientIPAndLogAccess();
+    fetchSheetNames();
+
+    // Lưu trạng thái khi tắt tab
+    window.addEventListener('beforeunload', () => {
+      if(document.getElementById('quiz-container').style.display === 'block') {
+        saveCurrentExam();
+      }
+    });
+
+    function loadRandomOrderSetting() {
+      const setting = localStorage.getItem('randomOrder');
+      return setting === 'true'; 
+    }
+
+    function saveRandomOrderSetting(value) {
+      localStorage.setItem('randomOrder', value ? 'true' : 'false');
+    }
+
+    function loadAutoNextSetting() {
+      const setting = localStorage.getItem('autoNext');
+      return setting === 'true'; 
+    }
+
+    function saveAutoNextSetting(value) {
+      localStorage.setItem('autoNext', value ? 'true' : 'false');
+    }
+
+    function loadCurrentExam() {
+      const exam = localStorage.getItem('currentExam');
+      return exam ? JSON.parse(exam) : null;
+    }
+
+    function saveCurrentExam() {
+      const currentExam = {
+        sheetName: currentSheetName,
+        currentQuestionIndex,
+        userAnswers,
+        questions,
+        randomOrder,
+        autoNext,
+        elapsedTime,
+        isBattleMode
+      };
+      localStorage.setItem('currentExam', JSON.stringify(currentExam));
+    }
+
+    function clearCurrentExam() {
+      localStorage.removeItem('currentExam');
+      const continueExamBtn = document.getElementById('continue-exam-btn');
+      if (continueExamBtn) {
+        continueExamBtn.style.display = 'none';
+      }
+    }
+
+    async function getClientIPAndLogAccess() {
+      const visitTime = new Date().toLocaleString();
+      const deviceInfo = navigator.userAgent;
+      let ip = "Không rõ IP";
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        ip = data.ip || "Không rõ IP";
+      } catch(e) {
+        console.warn("Không lấy được IP:", e);
+      }
+      
+      // Lấy thông tin địa lý
+      try {
+        const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+        const geoData = await geoRes.json();
+        if(geoData && geoData.city && geoData.country_name) {
+          userLocation = `${geoData.city}, ${geoData.country_name}`;
+        } else {
+          userLocation = "Không rõ địa điểm";
+        }
+      } catch(e) {
+        console.warn("Không lấy được vị trí:", e);
+        userLocation = "Không rõ địa điểm";
+      }
+
+      logs.push({
+        type: 'access',
+        time: visitTime,
+        location: userLocation,
+        detail: {
+          device: deviceInfo,
+          ip: ip
+        }
+      });
+    }
+
+    function loadMistakesFromCache() {
+      const mistakes = localStorage.getItem('mistakes');
+      return mistakes ? JSON.parse(mistakes) : {};
+    }
+
+    function saveMistakesToCache(mistakesObj) {
+      localStorage.setItem('mistakes', JSON.stringify(mistakesObj));
+    }
+
+    function loadQuizHistory() {
+      const history = localStorage.getItem('quizHistory');
+      return history ? JSON.parse(history) : [];
+    }
+
+    function saveQuizHistory(history) {
+      localStorage.setItem('quizHistory', JSON.stringify(history));
+    }
+
+    /*********************************************
+     * Lấy danh sách sheet
+     *********************************************/
+    async function fetchSheetNames() {
+      const selectionContainer = document.getElementById('sheet-selection');
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          selectionContainer.innerHTML = "<p>Không tải được danh sách đề. Kiểm tra mạng hoặc cấu hình.</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.sheets) {
+          selectionContainer.innerHTML = "<p>Không tìm thấy sheet nào. Hãy kiểm tra Google Sheet.</p>";
+          return;
+        }
+        sheetNames = data.sheets.map(sheet => sheet.properties.title);
+
+        if(sheetNames.length === 0) {
+          selectionContainer.innerHTML = "<p>Không có đề thi.</p>";
+          return;
+        }
+        displaySheetSelection();
+        populateBattleModeSelection();
+      } catch (e) {
+        console.error(e);
+        selectionContainer.innerHTML = "<p>Lỗi khi tải danh sách đề. Xem console để biết thêm.</p>";
+      }
+    }
+
+    function assignSheetButtonColors() {
+      const history = loadQuizHistory();
+      sheetNames.forEach(sheet => {
+        const sheetHistory = history.filter(entry => entry.sheetName === sheet);
+        const totalAttempts = sheetHistory.length;
+        const totalWrong = sheetHistory.reduce((sum, entry) => sum + entry.wrongCount, 0);
+        const averageWrong = totalAttempts > 0 ? (totalWrong / totalAttempts) : 0;
+
+        let color = '#28a745'; // Ít sai -> xanh lá
+        if (averageWrong >= 5) {
+          color = '#dc3545'; // Nhiều sai -> đỏ
+        } else if (averageWrong >= 1) {
+          color = '#ffc107'; // Trung bình -> vàng
+        }
+
+        if (totalAttempts <= 2) {
+          color = '#007bff'; // Thử ít lần -> xanh lam
+        }
+
+        const button = document.querySelector(`#sheet-selection button[data-sheet="${sheet}"]`);
+        if(button) {
+          button.style.backgroundColor = color;
+        }
+      });
+    }
+
+    function displaySheetSelection() {
+      const selectionContainer = document.getElementById('sheet-selection');
+      selectionContainer.innerHTML = "";
+      sheetNames.forEach(sheet => {
+        const button = document.createElement('button');
+        button.textContent = sheet;
+        button.setAttribute('data-sheet', sheet);
+        button.onclick = () => fetchQuestions(sheet);
+        selectionContainer.appendChild(button);
+      });
+      assignSheetButtonColors();
+    }
+
+    function populateBattleModeSelection() {
+      const battleSelectionContainer = document.getElementById('battle-sheet-selection');
+      battleSelectionContainer.innerHTML = "";
+      sheetNames.forEach(sheet => {
+        const div = document.createElement('div');
+        div.classList.add('sheet-option');
+        div.innerHTML = `
+          <label>
+            <input type="checkbox" value="${sheet}"> ${sheet}
+          </label>
+        `;
+        battleSelectionContainer.appendChild(div);
+      });
+    }
+
+    /************************************************
+     * Lấy dữ liệu câu hỏi
+     ************************************************/
+    async function fetchQuestions(sheetName) {
+      const sheetNameElem = document.getElementById('sheet-name');
+      const questionElem = document.getElementById('question');
+      sheetNameElem.textContent = "Đang tải...";
+      questionElem.textContent = "Đang tải...";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          sheetNameElem.textContent = `Tải đề [${sheetName}] thất bại.`;
+          questionElem.textContent = "";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length < 1) {
+          sheetNameElem.textContent = `Đề [${sheetName}] trống.`;
+          questionElem.textContent = "";
+          return;
+        }
+        currentSheetName = sheetName;
+        isBattleMode = false;
+        questions = processSheetData(data.values);
+        if(randomOrder) {
+          questions = shuffle(questions);
+        }
+        startQuiz();
+      } catch(e) {
+        console.error(e);
+        sheetNameElem.textContent = `Lỗi khi tải đề [${sheetName}]`;
+        questionElem.textContent = "";
+      }
+    }
+
+    async function startBattleMode() {
+      const battleSelectionContainer = document.getElementById('battle-sheet-selection');
+      const selectedSheets = Array.from(battleSelectionContainer.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+      if(selectedSheets.length === 0) {
+        alert("Vui lòng chọn ít nhất một đề.");
+        return;
+      }
+
+      let numQuestions = prompt("Nhập số câu hỏi cho Battle (10~500):", "50");
+      if (numQuestions === null) {
+        return; // Người dùng hủy
+      }
+      numQuestions = parseInt(numQuestions);
+      if (isNaN(numQuestions) || numQuestions < 10 || numQuestions > 500) {
+        alert("Vui lòng nhập số trong khoảng 10~500.");
+        return;
+      }
+
+      closeBattleModeSelection();
+
+      const sheetSelectionContainer = document.getElementById('sheet-selection');
+      sheetSelectionContainer.innerHTML = "<p>Đang tải câu hỏi cho chế độ Battle...</p>";
+      try {
+        let allQuestions = [];
+        for(const sheet of selectedSheets) {
+          const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheet)}?key=${apiKey}`;
+          const sheetResponse = await fetch(sheetUrl);
+          if(sheetResponse.ok) {
+            const sheetData = await sheetResponse.json();
+            if(sheetData.values && sheetData.values.length >=1) {
+              const processed = processSheetData(sheetData.values);
+              allQuestions = allQuestions.concat(processed);
+            }
+          }
+        }
+        if(allQuestions.length === 0) {
+          sheetSelectionContainer.innerHTML = "<p>Không có câu hỏi cho Battle.</p>";
+          return;
+        }
+        if(allQuestions.length < numQuestions) {
+          alert(`Chỉ có ${allQuestions.length} câu hỏi. Sẽ sử dụng tất cả.`);
+          numQuestions = allQuestions.length;
+        }
+        currentSheetName = "Battle Mode";
+        isBattleMode = true;
+        questions = shuffle(allQuestions).slice(0, numQuestions);
+        if(randomOrder) {
+          questions = shuffle(questions);
+        }
+        startQuiz();
+      } catch(e) {
+        console.error(e);
+        sheetSelectionContainer.innerHTML = "<p>Lỗi khi tải câu hỏi Battle.</p>";
+      }
+    }
+
+    function openBattleModeSelection() {
+      document.getElementById('battle-mode-selection-container').style.display = 'flex';
+    }
+
+    function closeBattleModeSelection() {
+      document.getElementById('battle-mode-selection-container').style.display = 'none';
+    }
+
+    function processSheetData(values) {
+      return values.map((row, idx) => {
+        let qText = row[1] ? row[1] : "";
+        qText = qText.replace(/\u200B/g, '').trim(); // Xóa ký tự zero-width
+
+        if (!qText) {
+          const time = new Date().toLocaleString();
+          const rowNumber = idx + 1;
+          const colNumber = 2;
+          logs.push({
+            type: 'error',
+            time: time,
+            location: userLocation,
+            detail: {
+              message: "Thiếu nội dung câu hỏi",
+              sheet: currentSheetName,
+              row: rowNumber,
+              col: colNumber,
+              questionData: row
+            }
+          });
+          console.log(`Dòng không có nội dung câu hỏi: Sheet=${currentSheetName}, Row=${rowNumber}, Col=${colNumber}, Data:`, row);
+        }
+        const qImage = row[2] ? row[2].trim() : "";
+        const qExplanation = row[7] ? row[7].trim() : ""; // Giải thích (H cột -> index 7)
+        return {
+          question: qText || "Không có nội dung",
+          image: qImage,
+          answer: row[8] === "o" ? "⭕" : "❌", // cột I -> index 8
+          explanation: qExplanation || ""
+        };
+      }).filter(q => q.question !== "Không có nội dung");
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function startQuiz() {
+      currentQuestionIndex = 0;
+      userAnswers = [];
+      answerVisible = false;
+      mistakeQuestions = [];
+      elapsedTime = 0;
+      clearCurrentExam();
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `Đề hiện tại: ${currentSheetName}`;
+      loadQuestion();
+      startTimer();
+    }
+
+    function startQuizFromState() {
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'block';
+      document.getElementById('sheet-name').innerText = `Đề hiện tại: ${currentSheetName}`;
+      loadQuestion();
+      startTimer();
+    }
+
+    function loadQuestion() {
+      const q = questions[currentQuestionIndex];
+      const questionElem = document.getElementById('question');
+      const imageContainer = document.getElementById('image');
+      
+      questionElem.textContent = "Đang tải...";
+      imageContainer.style.display='none';
+      imageContainer.innerHTML = '';
+
+      setTimeout(() => {
+        questionElem.innerText = q.question;
+        resetButtonHighlight();
+        const ans = userAnswers[currentQuestionIndex];
+        if(ans === '⭕') {
+          document.getElementById('btn-correct').classList.add('highlight');
+        } else if(ans === '❌') {
+          document.getElementById('btn-wrong').classList.add('highlight');
+        }
+        updateRemainingQuestions();
+      }, 200);
+
+      if (q.image) {
+        imageContainer.style.display='flex';
+        imageContainer.innerText = "Đang tải hình...";
+        const img = new Image();
+        img.src = q.image;
+        img.onload = () => {
+          imageContainer.innerHTML = '';
+          imageContainer.appendChild(img);
+        };
+        img.onerror = () => {
+          console.log("Không tải được ảnh:", q.image);
+          imageContainer.innerHTML = '';
+          imageContainer.style.display='none';
+        }
+      } else {
+        imageContainer.style.display='none';
+        imageContainer.innerHTML = '';
+      }
+
+      if (q.explanation) {
+        document.getElementById('answer-display').innerText = "";
+      } else {
+        document.getElementById('answer-display').innerText = "";
+      }
+      saveCurrentExam();
+    }
+
+    function updateRemainingQuestions() {
+      const remaining = questions.length - currentQuestionIndex - 1;
+      document.getElementById('remaining-questions').innerText = `Còn lại: ${remaining} câu`;
+    }
+
+    function selectAnswer(answer) {
+      userAnswers[currentQuestionIndex] = answer;
+      resetButtonHighlight();
+      if (answer === '⭕') document.getElementById('btn-correct').classList.add('highlight');
+      if (answer === '❌') document.getElementById('btn-wrong').classList.add('highlight');
+      saveCurrentExam();
+
+      if(autoNext) {
+        setTimeout(() => {
+          if (currentQuestionIndex < questions.length - 1) {
+            currentQuestionIndex++;
+            loadQuestion();
+          } else {
+            alert('Đây là câu cuối cùng, hãy nộp bài.');
+          }
+        }, 300);
+      }
+
+      if(autoNext && currentQuestionIndex === questions.length -1) {
+        setTimeout(() => {
+          submitQuiz();
+        }, 500);
+      }
+    }
+
+    function resetButtonHighlight() {
+      document.getElementById('btn-correct').classList.remove('highlight');
+      document.getElementById('btn-wrong').classList.remove('highlight');
+    }
+
+    function toggleAnswer() {
+      const correctAnswer = questions[currentQuestionIndex].answer;
+      const explanation = questions[currentQuestionIndex].explanation;
+      if (answerVisible) {
+        document.getElementById('answer-display').innerText = "";
+      } else {
+        if (explanation) {
+          document.getElementById('answer-display').innerText = `Đáp án: ${correctAnswer}\nGiải thích: ${explanation}`;
+        } else {
+          document.getElementById('answer-display').innerText = `Đáp án: ${correctAnswer}`;
+        }
+      }
+      answerVisible = !answerVisible;
+    }
+
+    function nextQuestion() {
+      if (currentQuestionIndex < questions.length - 1) {
+        currentQuestionIndex++;
+        loadQuestion();
+      } else {
+        alert('Đây là câu cuối, hãy nộp bài.');
+      }
+    }
+
+    function previousQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        loadQuestion();
+      }
+    }
+
+    function allQuestionsAnswered() {
+      return questions.every((q, i) => {
+        const ans = userAnswers[i];
+        return ans === '⭕' || ans === '❌';
+      });
+    }
+
+    function submitQuiz() {
+      let confirmation = true;
+      if (!allQuestionsAnswered()) {
+        confirmation = confirm("Vẫn còn câu chưa trả lời. Bạn chắc muốn nộp chứ?");
+      }
+      if (!confirmation) {
+        return;
+      }
+
+      stopTimer(); 
+      quizEndTime = new Date(); 
+      const timeSpentMs = quizEndTime - quizStartTime + elapsedTime;
+      const timeSpentMinutes = Math.floor(timeSpentMs / 60000);
+      const timeSpentSeconds = Math.floor((timeSpentMs % 60000) / 1000);
+      const timeSpentFormatted = `${timeSpentMinutes}p${timeSpentSeconds}s`;
+
+      let incorrectCount = 0;
+      let correctCount = 0;
+      let unansweredCount = 0;
+      let mistakesObj = loadMistakesFromCache();
+      mistakeQuestions = [];
+
+      const totalQuestions = questions.length;
+      const scorePerQuestion = 100 / totalQuestions;
+      let totalScore = 0;
+
+      questions.forEach((q, index) => {
+        const userAnswer = userAnswers[index];
+        if (userAnswer === undefined) {
+          unansweredCount++;
+        } else if (userAnswer === q.answer) {
+          correctCount++;
+          totalScore += scorePerQuestion;
+        } else {
+          incorrectCount++;
+          const key = q.question + '||' + q.answer + '||' + q.image + '||' + q.explanation;
+          if (mistakesObj[key]) {
+            mistakesObj[key].count += 1;
+            mistakesObj[key].userAnswer = userAnswer;
+            if(!mistakesObj[key].sheetName) {
+              mistakesObj[key].sheetName = currentSheetName;
+            }
+          } else {
+            mistakesObj[key] = {
+              question: q.question,
+              image: q.image,
+              answer: q.answer,
+              explanation: q.explanation,
+              count: 1,
+              userAnswer: userAnswer,
+              sheetName: currentSheetName
+            };
+          }
+
+          mistakeQuestions.push({
+            question: q.question,
+            image: q.image,
+            answer: q.answer,
+            explanation: q.explanation,
+            userAnswer: userAnswer,
+            sheetName: currentSheetName
+          });
+        }
+      });
+
+      totalScore = Math.floor(totalScore);
+      if(totalScore > 100) totalScore = 100;
+
+      saveMistakesToCache(mistakesObj);
+      clearCurrentExam();
+
+      let scoreMessage = "";
+      let scoreClass = "";
+      if(totalScore === 100) {
+        scoreMessage = "Hoàn hảo! Rất tuyệt vời!";
+        scoreClass = "score-excellent";
+      } else if(totalScore >= 90) {
+        scoreMessage = "Đạt yêu cầu! Hãy tiếp tục nỗ lực!";
+        scoreClass = "score-good";
+      } else {
+        scoreMessage = "Bạn chưa đủ điểm... Cần luyện tập thêm.";
+        scoreClass = "score-bad";
+      }
+
+      const answeredQuestions = correctCount + incorrectCount;
+      const completionPercentage = Math.floor((answeredQuestions / totalQuestions) * 100);
+
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = `${completionPercentage}%`;
+      progressBar.innerText = `${completionPercentage}%`;
+      progressBar.style.backgroundColor = completionPercentage >= 90 ? '#28a745' :
+                                         completionPercentage >= 70 ? '#ffc107' :
+                                         '#dc3545';
+
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'block';
+      const scoreElem = document.getElementById('score');
+      scoreElem.innerText = `Điểm: ${totalScore} - ${scoreMessage}`;
+      scoreElem.className = scoreClass; 
+      document.getElementById('mistake-count').innerText = `Sai: ${incorrectCount} câu`;
+      document.getElementById('correct-count').innerText = `Đúng: ${correctCount} câu`;
+      document.getElementById('unanswered-count').innerText = `Chưa làm: ${unansweredCount} câu`;
+      document.getElementById('completion-status').innerText = `Hoàn thành: ${answeredQuestions}/${totalQuestions}`;
+
+      const history = loadQuizHistory();
+      history.push({
+        dateTime: new Date().toLocaleString(),
+        sheetName: currentSheetName,
+        wrongCount: incorrectCount,
+        correctCount: correctCount,
+        unansweredCount: unansweredCount,
+        timeSpent: timeSpentFormatted,
+        answered: answeredQuestions,
+        total: totalQuestions,
+        score: totalScore
+      });
+      saveQuizHistory(history);
+
+      logs.push({
+        type: 'quiz',
+        time: new Date().toLocaleString(),
+        location: userLocation,
+        detail: {
+          sheetName: currentSheetName,
+          wrongCount: incorrectCount,
+          correctCount: correctCount,
+          unansweredCount: unansweredCount,
+          timeSpent: timeSpentFormatted,
+          answered: answeredQuestions,
+          total: totalQuestions,
+          score: totalScore
+        }
+      });
+    }
+
+    function pauseExam() {
+      stopTimer();
+      const now = new Date();
+      elapsedTime += now - quizStartTime;
+      saveCurrentExam();
+      alert("Tiến độ bài thi đã được lưu. Bạn có thể tiếp tục sau.");
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('container').style.display = 'block';
+      if(loadCurrentExam()) {
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'inline-block';
+        }
+      }
+    }
+
+    function resetQuiz() {
+      stopTimer();
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('container').style.display = 'block';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      isBattleMode = false;
+      fetchSheetNames();
+      if(loadCurrentExam()) {
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'inline-block';
+        }
+      } else {
+        const continueExamBtn = document.getElementById('continue-exam-btn');
+        if (continueExamBtn) {
+          continueExamBtn.style.display = 'none';
+        }
+      }
+    }
+
+    function viewMistakes() {
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('current-mistakes-container').style.display = 'block';
+      const mistakeContainer = document.getElementById('current-mistakes-list');
+      mistakeContainer.innerHTML = '';
+
+      if (mistakeQuestions.length === 0) {
+        mistakeContainer.innerHTML = "<p>Không có lỗi sai nào.</p>";
+        return;
+      }
+
+      mistakeQuestions.forEach((item, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.style.paddingBottom = "10px";
+
+        let imgHTML = '';
+        if (item.image) {
+          imgHTML = `<div><img src="${item.image}" alt="Hình câu hỏi" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
+        }
+
+        let explanationHTML = '';
+        if (item.explanation) {
+          explanationHTML = `<div><strong>Giải thích:</strong> ${item.explanation}</div>`;
+        }
+
+        questionDiv.innerHTML =
+          `<div><strong>Đề:</strong> ${item.sheetName || "N/A"}</div>
+           <div><strong>Câu ${index + 1}:</strong> ${item.question}</div>
+           ${imgHTML}
+           <div><strong>Đáp án sai của bạn:</strong> ${item.userAnswer}</div>
+           <div><strong>Đáp án đúng:</strong> ${item.answer}</div>
+           ${explanationHTML}`;
+        mistakeContainer.appendChild(questionDiv);
+      });
+    }
+
+    function startMistakeReview() {
+      const mistakesObj = loadMistakesFromCache();
+      const keys = Object.keys(mistakesObj);
+      if (keys.length === 0) {
+        alert("Không có dữ liệu lỗi nào.");
+        return;
+      }
+
+      stopTimer();
+      document.getElementById('container').style.display = 'none';
+      document.getElementById('quiz-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'none';
+      document.getElementById('current-mistakes-container').style.display = 'none';
+      document.getElementById('console-logs-container').style.display = 'none';
+      document.getElementById('update-logs-container').style.display = 'none';
+      document.getElementById('function-intro-container').style.display = 'none';
+      document.getElementById('summary-container').style.display = 'none';
+      document.getElementById('mistake-review-container').style.display = 'block';
+
+      const mistakeContainer = document.getElementById('mistake-questions');
+      mistakeContainer.innerHTML = '';
+
+      keys.forEach((key, index) => {
+        const item = mistakesObj[key];
+        const uAnswer = item.userAnswer || "N/A";
+        const cCount = (item.count !== undefined) ? item.count : "N/A";
+        const sheetNameDisplay = item.sheetName || "N/A";
+
+        const questionDiv = document.createElement('div');
+
+        let imgHTML = '';
+        if (item.image) {
+          imgHTML = `<div><img src="${item.image}" alt="Hình câu hỏi" style="max-width:100%;max-height:150px;object-fit:contain;margin-top:10px;"></div>`;
+        }
+
+        let explanationHTML = '';
+        if (item.explanation) {
+          explanationHTML = `<div><strong>Giải thích:</strong> ${item.explanation}</div>`;
+        }
+
+        questionDiv.innerHTML =
+          `<div><strong>Đề:</strong> ${sheetNameDisplay}</div>
+           <div><strong>Câu ${index + 1}:</strong> ${item.question}</div>
+           ${imgHTML}
+           <div><strong>Lần sai gần nhất:</strong> ${uAnswer}</div>
+           <div><strong>Đáp án đúng:</strong> ${item.answer}</div>
+           ${explanationHTML}
+           <div><strong>Số lần sai:</strong> ${cCount}</div>`;
+        mistakeContainer.appendChild(questionDiv);
+      });
+    }
+
+    function showFunctionIntro() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='block';
+    }
+
+    function showSummary() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='block';
+
+      const summaryContent = document.getElementById('summary-content');
+      summaryContent.innerHTML = "Đang tải...";
+
+      const history = loadQuizHistory();
+      if(history.length === 0) {
+        summaryContent.innerHTML = "<p>Chưa có lịch sử thi.</p>";
+        return;
+      }
+
+      // Tổng hợp theo từng đề
+      const summaryBySheet = {};
+      history.forEach(entry => {
+        if(!summaryBySheet[entry.sheetName]) {
+          summaryBySheet[entry.sheetName] = {
+            attempts: 0,
+            totalWrong: 0,
+            totalCorrect: 0,
+            totalUnanswered: 0,
+            totalTime: 0,
+            lastCompletionTime: "",
+            lastCompletion: {answered: 0, total: 0},
+            scores: [],
+            individualPerformances: []
+          };
+        }
+        summaryBySheet[entry.sheetName].attempts += 1;
+        summaryBySheet[entry.sheetName].totalWrong += entry.wrongCount;
+        summaryBySheet[entry.sheetName].totalCorrect += entry.correctCount;
+        summaryBySheet[entry.sheetName].totalUnanswered += entry.unansweredCount;
+        const timeParts = entry.timeSpent.match(/(\d+)p(\d+)s/);
+        let totalSeconds = 0;
+        if(timeParts) {
+          totalSeconds = parseInt(timeParts[1]) * 60 + parseInt(timeParts[2]);
+        }
+        summaryBySheet[entry.sheetName].totalTime += totalSeconds;
+        summaryBySheet[entry.sheetName].lastCompletionTime = entry.dateTime;
+        summaryBySheet[entry.sheetName].lastCompletion = {answered: entry.answered, total: entry.total};
+        summaryBySheet[entry.sheetName].scores.push(entry.score);
+        summaryBySheet[entry.sheetName].individualPerformances.push({
+          dateTime: entry.dateTime,
+          wrongCount: entry.wrongCount,
+          correctCount: entry.correctCount,
+          unansweredCount: entry.unansweredCount,
+          timeSpent: entry.timeSpent,
+          answered: entry.answered,
+          total: entry.total,
+          score: entry.score
+        });
+      });
+
+      let html = "";
+      for(const sheet in summaryBySheet) {
+        const sheetData = summaryBySheet[sheet];
+        const averageWrong = (sheetData.attempts > 0) ? (sheetData.totalWrong / sheetData.attempts).toFixed(2) : 0;
+        const averageCorrect = (sheetData.attempts > 0) ? (sheetData.totalCorrect / sheetData.attempts).toFixed(2) : 0;
+        const averageUnanswered = (sheetData.attempts > 0) ? (sheetData.totalUnanswered / sheetData.attempts).toFixed(2) : 0;
+        const averageScore = (sheetData.scores.reduce((a, b) => a + b, 0) / sheetData.attempts).toFixed(2);
+
+        const avgTotalSec = sheetData.totalTime / sheetData.attempts;
+        const avgMin = Math.floor(avgTotalSec / 60);
+        const avgSec = Math.floor(avgTotalSec % 60);
+        const averageTimeFormatted = `${avgMin}p${avgSec}s`;
+
+        html += `<div class="summary-sheet">
+                  <h3>Đề: ${sheet}</h3>
+                  <table>
+                    <tr>
+                      <th>Tổng số lần thi</th>
+                      <th>Số sai trung bình</th>
+                      <th>Số đúng trung bình</th>
+                      <th>Số chưa làm TB</th>
+                      <th>Điểm trung bình</th>
+                      <th>Thời gian TB</th>
+                      <th>Lần thi gần nhất</th>
+                      <th>Tiến độ lần gần nhất</th>
+                    </tr>
+                    <tr>
+                      <td>${sheetData.attempts}</td>
+                      <td>${averageWrong}</td>
+                      <td>${averageCorrect}</td>
+                      <td>${averageUnanswered}</td>
+                      <td>${averageScore}</td>
+                      <td>${averageTimeFormatted}</td>
+                      <td>${sheetData.lastCompletionTime}</td>
+                      <td>${sheetData.lastCompletion.answered}/${sheetData.lastCompletion.total}</td>
+                    </tr>
+                  </table>
+                  <h4>Chi tiết từng lần thi:</h4>
+                  <table>
+                    <tr>
+                      <th>Thời điểm</th>
+                      <th>Số sai</th>
+                      <th>Số đúng</th>
+                      <th>Số chưa làm</th>
+                      <th>Thời gian</th>
+                      <th>Điểm</th>
+                      <th>Đã làm/Tổng</th>
+                    </tr>`;
+        sheetData.individualPerformances.forEach(perf => {
+          html += `<tr>
+                    <td>${perf.dateTime}</td>
+                    <td>${perf.wrongCount}</td>
+                    <td>${perf.correctCount}</td>
+                    <td>${perf.unansweredCount}</td>
+                    <td>${perf.timeSpent}</td>
+                    <td>${perf.score}</td>
+                    <td>${perf.answered}/${perf.total}</td>
+                  </tr>`;
+        });
+        html += `</table>
+                </div>`;
+      }
+
+      summaryContent.innerHTML = html;
+    }
+
+    function showScore() {
+      document.getElementById('current-mistakes-container').style.display = 'none';
+      document.getElementById('result-container').style.display = 'block';
+    }
+
+    function clearAllHistory() {
+      const confirmClear = confirm("Xoá lịch sử sẽ xóa toàn bộ dữ liệu lỗi sai, bài thi chưa hoàn thành... Bạn có chắc không?");
+      if(confirmClear) {
+        localStorage.clear();
+        alert("Đã xóa lịch sử.");
+        resetQuiz();
+      }
+    }
+
+    function showUpdateLogs() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='block';
+    }
+
+    async function viewConsoleLogs() {
+      const password = prompt("Nhập mật khẩu để xem nhật ký Console:");
+      if (password === "Aa123456") {
+        try {
+          await recordLogsToSheet();
+        } catch(e) {
+          console.error("Ghi logs lên Google Sheet thất bại:", e);
+        }
+        showConsoleLogsFromSheet();
+      } else {
+        alert("Sai mật khẩu!");
+      }
+    }
+
+    async function recordLogsToSheet() {
+      if(logs.length === 0) {
+        return;
+      }
+
+      const values = logs.map(log => {
+        if (log.type === 'access') {
+          return [
+            'access',
+            log.time || '',
+            log.location || '',
+            log.detail.device || '',
+            log.detail.ip || '',
+            'N/A',
+            'N/A',
+            'N/A'
+          ];
+        } else if (log.type === 'error') {
+          return [
+            'error',
+            log.time || '',
+            log.location || '',
+            log.detail.message || '',
+            log.detail.sheet || '',
+            log.detail.row || '',
+            log.detail.col || '',
+            JSON.stringify(log.detail.questionData || '')
+          ];
+        } else if (log.type === 'quiz') {
+          return [
+            'quiz',
+            log.time || '',
+            log.location || '',
+            `Sheet: ${log.detail.sheetName}, Wrong: ${log.detail.wrongCount}, Correct: ${log.detail.correctCount}, Unanswered: ${log.detail.unansweredCount}, Time: ${log.detail.timeSpent}, Score: ${log.detail.score}`,
+            'N/A',
+            'N/A',
+            'N/A',
+            'N/A'
+          ];
+        }
+      });
+
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A1:append?valueInputOption=RAW&key=${apiKey}`;
+      const body = {values: values};
+      await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      });
+
+      logs = [];
+    }
+
+    async function showConsoleLogsFromSheet() {
+      document.getElementById('container').style.display='none';
+      document.getElementById('quiz-container').style.display='none';
+      document.getElementById('result-container').style.display='none';
+      document.getElementById('mistake-review-container').style.display='none';
+      document.getElementById('current-mistakes-container').style.display='none';
+      document.getElementById('update-logs-container').style.display='none';
+      document.getElementById('function-intro-container').style.display='none';
+      document.getElementById('summary-container').style.display='none';
+      document.getElementById('console-logs-container').style.display='block';
+
+      const consoleLogsContent = document.getElementById('console-logs-content');
+      consoleLogsContent.textContent = "Đang tải...";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Console!A:Z?key=${apiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          consoleLogsContent.innerHTML = "<p>Không tải được nhật ký Console.</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length <= 1) {
+          consoleLogsContent.innerHTML = "<p>Chưa có nhật ký.</p>";
+          return;
+        }
+
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["Loại","Thời gian","Địa điểm","Thiết bị/Thông báo","IP","Row","Col","QuestionData"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => {
+          const tr = document.createElement('tr');
+          headers.forEach((h, i) => {
+            const td = document.createElement('td');
+            td.textContent = rowArr[i] || "";
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+
+        table.appendChild(tbody);
+        consoleLogsContent.innerHTML = '';
+        consoleLogsContent.appendChild(table);
+
+      } catch(e) {
+        console.error(e);
+        consoleLogsContent.innerHTML = "<p>Lỗi khi tải nhật ký.</p>";
+      }
+    }
+
+    function continueExam() {
+      const exam = loadCurrentExam();
+      if(!exam) {
+        alert("Không có bài thi nào đang dở.");
+        return;
+      }
+      const {
+        sheetName,
+        currentQuestionIndex: idx,
+        userAnswers: ua,
+        questions: qs,
+        randomOrder: ro,
+        autoNext: an,
+        elapsedTime: et,
+        isBattleMode: bm
+      } = exam;
+
+      const total = qs.length;
+      const progress = idx + 1;
+      const confirmContinue = confirm(`Bạn có bài thi chưa xong: ${sheetName} (Tiến độ: ${progress}/${total}). Tiếp tục chứ?`);
+      if(confirmContinue) {
+        currentSheetName = sheetName;
+        currentQuestionIndex = idx;
+        userAnswers = ua;
+        questions = qs;
+        randomOrder = ro;
+        autoNext = an;
+        isBattleMode = bm;
+        elapsedTime = et || 0;
+        const randomCheckbox = document.getElementById('random-checkbox');
+        if (randomCheckbox) {
+          randomCheckbox.checked = randomOrder;
+        }
+        const autoNextCheckbox = document.getElementById('autonext-checkbox');
+        if (autoNextCheckbox) {
+          autoNextCheckbox.checked = autoNext;
+        }
+        startQuizFromState();
+      } else {
+        clearCurrentExam();
+      }
+    }
+
+    function startTimer() {
+      const timerElem = document.getElementById('timer');
+      quizStartTime = new Date();
+      timerInterval = setInterval(() => {
+        const now = new Date();
+        const elapsed = now - quizStartTime + elapsedTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        timerElem.innerText = `Thời gian: ${String(minutes).padStart(2, '0')}p${String(seconds).padStart(2, '0')}s`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    // Xử lý khi nhấn vào hình QR
+    function triggerScan() {
+      const qrImage = document.querySelector('#initial-message img');
+      if(qrImage) {
+        window.open(qrImage.src, '_blank');
+      }
+    }
+
+    /*****************************
+     * Tải tin nhắn ban đầu từ VN!B1:B5
+     *****************************/
+    async function loadInitialMessages() {
+      const initialMessageContainer = document.getElementById('initial-message');
+      initialMessageContainer.innerHTML = "<p>Đang tải...</p>";
+
+      try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/VN!B1:B5?key=${systemApiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          initialMessageContainer.innerHTML = "<p>Không tải được tin nhắn ban đầu.</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length === 0) {
+          initialMessageContainer.innerHTML = "<p>Không có tin nhắn nào.</p>";
+          return;
+        }
+
+        // Xóa nội dung cũ
+        initialMessageContainer.innerHTML = "";
+
+        // B1~B4: text
+        data.values.slice(0,4).forEach((row) => {
+          const message = row[0] ? row[0].trim() : "";
+          if(message) {
+            const p = document.createElement('p');
+            p.textContent = message;
+            initialMessageContainer.appendChild(p);
+          }
+        });
+
+        // B5: link QR
+        if(data.values.length >= 5) {
+          const qrUrl = data.values[4][0] ? data.values[4][0].trim() : "";
+          if(qrUrl) {
+            const img = document.createElement('img');
+            img.src = qrUrl;
+            img.alt = "QR Code Tham gia Cộng đồng";
+            img.onclick = triggerScan;
+            initialMessageContainer.appendChild(img);
+          }
+        }
+
+      } catch(e) {
+        console.error("Lỗi khi tải tin nhắn ban đầu:", e);
+        initialMessageContainer.innerHTML = "<p>Lỗi khi tải tin nhắn ban đầu.</p>";
+      }
+    }
+
+    /*****************************
+     * Tải nhật ký cập nhật từ VN!C1:D
+     *****************************/
+    async function loadUpdateLogs() {
+      const updateLogsContainer = document.getElementById('update-logs-list');
+      updateLogsContainer.innerHTML = "<p>Đang tải...</p>";
+
+      try {
+        // VN!C: Ngày, VN!D: Nội dung cập nhật
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/VN!C1:D?key=${systemApiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          updateLogsContainer.innerHTML = "<p>Không tải được nhật ký cập nhật.</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length < 2 ) {
+          updateLogsContainer.innerHTML = "<p>Không có nhật ký cập nhật.</p>";
+          return;
+        }
+
+        updateLogsContainer.innerHTML = "";
+        const table = document.createElement('table');
+
+        // Tạo header bảng
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["Ngày","Nội dung cập nhật"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => {
+          const cDate = rowArr[0] ? rowArr[0].trim() : "";
+          const cUpdate = rowArr[1] ? rowArr[1].trim() : "";
+          if(cDate || cUpdate) {
+            const tr = document.createElement('tr');
+            const tdDate = document.createElement('td');
+            tdDate.textContent = cDate;
+            const tdContent = document.createElement('td');
+            tdContent.textContent = cUpdate;
+            tr.appendChild(tdDate);
+            tr.appendChild(tdContent);
+            tbody.appendChild(tr);
+          }
+        });
+
+        if(tbody.children.length === 0) {
+          updateLogsContainer.innerHTML = "<p>Không có nhật ký cập nhật.</p>";
+        } else {
+          table.appendChild(tbody);
+          updateLogsContainer.appendChild(table);
+        }
+
+      } catch(e) {
+        console.error("Không tải được nhật ký cập nhật:", e);
+        updateLogsContainer.innerHTML = "<p>Lỗi khi tải nhật ký cập nhật.</p>";
+      }
+    }
+
+    /*****************************
+     * Tải giới thiệu tính năng từ VN!E1:G
+     *****************************/
+    async function loadFunctionIntro() {
+      const functionIntroContainer = document.getElementById('function-intro-content');
+      functionIntroContainer.innerHTML = "<p>Đang tải...</p>";
+
+      try {
+        // VN!E: Tên tính năng, VN!F: Mô tả, VN!G: Ghi chú
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${systemSpreadsheetId}/values/VN!E1:G?key=${systemApiKey}`;
+        const response = await fetch(url);
+        if(!response.ok) {
+          functionIntroContainer.innerHTML = "<p>Không tải được giới thiệu tính năng.</p>";
+          return;
+        }
+        const data = await response.json();
+        if(!data.values || data.values.length < 2 ) {
+          functionIntroContainer.innerHTML = "<p>Không có thông tin tính năng.</p>";
+          return;
+        }
+
+        functionIntroContainer.innerHTML = "";
+        const table = document.createElement('table');
+
+        // Header bảng (3 cột)
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = ["Tên tính năng","Mô tả","Ghi chú"];
+        headers.forEach(h => {
+          const th = document.createElement('th');
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        data.values.slice(1).forEach((rowArr) => {
+          const featureName = rowArr[0] ? rowArr[0].trim() : "";
+          const featureDesc = rowArr[1] ? rowArr[1].trim() : "";
+          const remarks = rowArr[2] ? rowArr[2].trim() : "";
+
+          if(featureName || featureDesc || remarks) {
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.textContent = featureName;
+            const tdDesc = document.createElement('td');
+            tdDesc.textContent = featureDesc;
+            const tdRemarks = document.createElement('td');
+            tdRemarks.textContent = remarks;
+            tr.appendChild(tdName);
+            tr.appendChild(tdDesc);
+            tr.appendChild(tdRemarks);
+            tbody.appendChild(tr);
+          }
+        });
+
+        if(tbody.children.length === 0) {
+          functionIntroContainer.innerHTML = "<p>Không có thông tin tính năng.</p>";
+        } else {
+          table.appendChild(tbody);
+          functionIntroContainer.appendChild(table);
+        }
+
+      } catch(e) {
+        console.error("Không tải được giới thiệu tính năng:", e);
+        functionIntroContainer.innerHTML = "<p>Lỗi khi tải giới thiệu tính năng.</p>";
+      }
+    }
+  </script>
+</body>
+</html>
