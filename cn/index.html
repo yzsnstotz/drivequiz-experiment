@@ -437,6 +437,10 @@
       <label>
         <input type="checkbox" id="autonext-checkbox"> 自动翻题
       </label>
+      <!-- 新增「显示日语」复选框 -->
+      <label>
+        <input type="checkbox" id="show-japanese-checkbox"> 显示日语
+      </label>
     </div>
 
     <div id="sheet-selection">加载中...</div>
@@ -594,6 +598,14 @@
     const systemApiKey = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
     const systemSpreadsheetId = "1bkTNZje3ehMPn2-PNH-yLT1kPpRvs_HAfiYuPg2jA6w";
 
+    /**************************************************
+     * 3) 新增 - 日语题库API配置
+     *    (其结构与旧/新表格相同，只是存放了对应的日语题干与解说)
+     **************************************************/
+    const jpSpreadsheetId = "1B3k4cKFSJK0PT3lpabHhedPohbWYUt1UfncdDI_ryYk";
+    // 注意：访问同一个 key
+    const jpApiKey = newApiKey; // 直接复用 newApiKey 即可
+
     // 统一存储 sheet 列表
     let sheetList = []; // [{name: 'Sheet1', from: 'old'|'new'}, ...]
     let questions = [];
@@ -615,11 +627,15 @@
     let randomOrder = loadRandomOrderSetting();
     let autoNext = loadAutoNextSetting();
 
+    // 新增 - 日语显示开关
+    let showJapanese = loadShowJapaneseSetting();
+
     // 收藏题库
     let favorites = loadFavorites();
 
     // Wait for DOM to load
     document.addEventListener('DOMContentLoaded', () => {
+      // 同步三个复选框的UI
       const randomCheckbox = document.getElementById('random-checkbox');
       randomCheckbox.checked = randomOrder; 
       randomCheckbox.addEventListener('change', () => {
@@ -632,6 +648,18 @@
       autoNextCheckbox.addEventListener('change', () => {
         autoNext = autoNextCheckbox.checked;
         saveAutoNextSetting(autoNext);
+      });
+
+      // 新增 - 「显示日语」复选框
+      const showJapaneseCheckbox = document.getElementById('show-japanese-checkbox');
+      showJapaneseCheckbox.checked = showJapanese;
+      showJapaneseCheckbox.addEventListener('change', () => {
+        showJapanese = showJapaneseCheckbox.checked;
+        saveShowJapaneseSetting(showJapanese);
+        // 如果正在答题，也可以立即刷新当前题显示
+        if(document.getElementById('quiz-container').style.display === 'block') {
+          loadQuestion();
+        }
       });
 
       const continueExamBtn = document.getElementById('continue-exam-btn');
@@ -656,7 +684,7 @@
     });
 
     /********************************************
-     * “随机题序”和“自动翻题”本地存储读写
+     * “随机题序”和“自动翻题”、“显示日语”本地存储读写
      ********************************************/
     function loadRandomOrderSetting() {
       const setting = localStorage.getItem('randomOrder');
@@ -671,6 +699,13 @@
     }
     function saveAutoNextSetting(value) {
       localStorage.setItem('autoNext', value ? 'true' : 'false');
+    }
+    function loadShowJapaneseSetting() {
+      const setting = localStorage.getItem('showJapanese');
+      return setting === 'true'; 
+    }
+    function saveShowJapaneseSetting(value) {
+      localStorage.setItem('showJapanese', value ? 'true' : 'false');
     }
 
     /********************************************
@@ -691,7 +726,8 @@
         elapsedTime,
         isBattleMode,
         isMistakeMode,
-        isFavoritesMode
+        isFavoritesMode,
+        showJapanese
       };
       localStorage.setItem('currentExam', JSON.stringify(currentExam));
     }
@@ -890,7 +926,8 @@
     }
 
     /************************************************
-     * 根据 sheet 来获取题目（分别判断来自旧或新表格）
+     * 根据 sheet 来获取题目（分别判断来自旧或新表格），
+     * 并在勾选「显示日语」时，额外获取日文数据
      ************************************************/
     async function fetchQuestions(sheetName, from) {
       const sheetNameElem = document.getElementById('sheet-name');
@@ -928,7 +965,30 @@
         isBattleMode = false;
         isMistakeMode = false;
         isFavoritesMode = false;
+        // 先处理基础题目
         questions = processSheetData(data.values, from); 
+
+        // 如果勾选了「显示日语」，则并行获取日语题
+        if(showJapanese) {
+          // 同样的sheetName行对应
+          const jpUrl = `https://sheets.googleapis.com/v4/spreadsheets/${jpSpreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${jpApiKey}`;
+          const jpResponse = await fetch(jpUrl);
+          if(jpResponse.ok) {
+            const jpData = await jpResponse.json();
+            if(jpData.values && jpData.values.length >= 1) {
+              // 把日语的题目 & 解说合并到 questions 中
+              const jpQuestions = processSheetData(jpData.values, from, true); // 加个参数 isJP=true
+              // 按行顺序合并
+              questions.forEach((q, idx) => {
+                if(jpQuestions[idx]) {
+                  q.jpQuestion = jpQuestions[idx].question;
+                  q.jpExplanation = jpQuestions[idx].explanation;
+                }
+              });
+            }
+          }
+        }
+
         if(randomOrder) {
           questions = shuffle(questions);
         }
@@ -941,9 +1001,9 @@
     }
 
     /************************************************
-     * 处理表格数据（区分 old/new）
+     * 处理表格数据（区分 old/new），若 isJP=true 则表示解析日语表格
      ************************************************/
-    function processSheetData(values, from) {
+    function processSheetData(values, from, isJP=false) {
       if(from === "old") {
         // 旧表格：question=row[1], image=row[2], answer=row[8]('o'->⭕/'x'->❌), explanation=row[7]
         return values.map((row, idx) => {
@@ -956,13 +1016,17 @@
           const correct = (row[8] === "o" || row[8] === "o ") ? "⭕" : "❌";
 
           return {
-            question: qText || "无题目",
+            question: qText || (isJP ? "" : "无题目"),
             image: qImage,
             answer: correct,
             explanation: qExplanation || "",
             sheetSource: from
           };
-        }).filter(q => q.question !== "无题目");
+        }).filter(q => {
+          // 如果是日语题(isJP)，允许题目为空；否则不允许
+          if(isJP) return true;
+          return q.question !== "无题目";
+        });
       } else {
         // 新表格：question=row[0], image=row[1], answer=row[2]('o'->⭕/'x'->❌), explanation=row[3]
         return values.map((row, idx) => {
@@ -975,13 +1039,16 @@
           const correct = (row[2] === "o" || row[2] === "o ") ? "⭕" : "❌";
 
           return {
-            question: qText || "无题目",
+            question: qText || (isJP ? "" : "无题目"),
             image: qImage,
             answer: correct,
             explanation: qExplanation || "",
             sheetSource: from
           };
-        }).filter(q => q.question !== "无题目");
+        }).filter(q => {
+          if(isJP) return true;
+          return q.question !== "无题目";
+        });
       }
     }
 
@@ -1039,7 +1106,7 @@
     }
 
     /************************************************
-     * 载入单个题目
+     * 载入单个题目（若勾选了showJapanese，则拼接显示双语）
      ************************************************/
     function loadQuestion() {
       const q = questions[currentQuestionIndex];
@@ -1052,7 +1119,12 @@
       imageContainer.innerHTML = '';
 
       setTimeout(() => {
-        questionElem.innerText = q.question;
+        let textToShow = q.question;
+        if(showJapanese && q.jpQuestion) {
+          textToShow += "\n-----\n" + q.jpQuestion; 
+        }
+        questionElem.innerText = textToShow; 
+
         resetButtonHighlight();
         const ans = userAnswers[currentQuestionIndex];
         if(ans === '⭕') {
@@ -1127,17 +1199,26 @@
       document.getElementById('btn-wrong').classList.remove('highlight');
     }
 
+    /***********************************************
+     * 显示/隐藏答案，若勾选了日语，则附带显示日文解说
+     ***********************************************/
     function toggleAnswer() {
-      const correctAnswer = questions[currentQuestionIndex].answer;
-      const explanation = questions[currentQuestionIndex].explanation;
+      const q = questions[currentQuestionIndex];
+      const correctAnswer = q.answer;
+      const explanation = q.explanation;
+      const jpExplanation = q.jpExplanation || "";
+
       if (answerVisible) {
         document.getElementById('answer-display').innerText = "";
       } else {
+        let displayText = `正确答案：${correctAnswer}`;
         if (explanation) {
-          document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}\n解说：${explanation}`;
-        } else {
-          document.getElementById('answer-display').innerText = `正确答案：${correctAnswer}`;
+          displayText += `\n解说：${explanation}`;
         }
+        if(showJapanese && jpExplanation) {
+          displayText += `\n-----\n【日文解说】\n${jpExplanation}`;
+        }
+        document.getElementById('answer-display').innerText = displayText;
       }
       answerVisible = !answerVisible;
     }
@@ -1197,7 +1278,7 @@
     }
 
     /********************************************
-     * 错题 / 收藏 提交逻辑
+     * 交卷 & 计算成绩
      ********************************************/
     function submitQuiz() {
       let confirmation = true;
@@ -1421,8 +1502,9 @@
 
     /********************************************
      * 改造：错题复习 => 专门的“错题单元测试”
+     * 进入时也会尝试获取日语题
      ********************************************/
-    function startMistakeQuiz() {
+    async function startMistakeQuiz() {
       // 从本地错题库取出
       const mistakesObj = loadMistakesFromCache();
       const keys = Object.keys(mistakesObj);
@@ -1450,6 +1532,14 @@
 
       currentSheetName = "错题集";
       questions = mistakeArray;
+      // 如有需要显示日语，就加载对应sheetName日文(只能尽力匹配)
+      if(showJapanese) {
+        // 这里仅做示例：我们统一假定所有错题都来自当前 sheetName 或「sheetSource=old/new 对应sheetName」；
+        // 如果有更复杂的逻辑(比如多套题多行)需自行扩展
+        // 简易写法：不对行精确匹配，只给出提示
+        console.log("【提示】错题模式下，如需准确定位日语题，需要结合题目行号等信息做更精细的匹配逻辑。此处仅做保留。");
+      }
+
       if(randomOrder) {
         questions = shuffle(questions);
       }
@@ -1483,7 +1573,7 @@
       document.getElementById('favorites-container').style.display='block';
     }
 
-    function startFavoritesQuiz() {
+    async function startFavoritesQuiz() {
       const favKeys = Object.keys(favorites);
       if(favKeys.length === 0) {
         alert("暂无收藏题目！");
@@ -1507,6 +1597,12 @@
       isMistakeMode = false;
       currentSheetName = "我的收藏";
       questions = favArray;
+
+      // 如需显示日语，也可再行抓取
+      if(showJapanese) {
+        console.log("【提示】收藏题也可以与日语题对照匹配，需要与实际Sheet行号对应才可精确匹配。此处简化处理。");
+      }
+
       if(randomOrder) {
         questions = shuffle(questions);
       }
@@ -1569,6 +1665,27 @@
               allQuestions = allQuestions.concat(processed);
             }
           }
+
+          // 若勾选了显示日语，也加载对应Sheet的日文
+          // 最后再进行合并
+          if(showJapanese) {
+            const jpUrl = `https://sheets.googleapis.com/v4/spreadsheets/${jpSpreadsheetId}/values/${encodeURIComponent(shName)}?key=${jpApiKey}`;
+            const jpResponse = await fetch(jpUrl);
+            if(jpResponse.ok) {
+              const jpData = await jpResponse.json();
+              if(jpData.values && jpData.values.length>=1) {
+                const jpProcessed = processSheetData(jpData.values, from, true);
+                // 按行顺序合并
+                const startIndex = allQuestions.length - processed.length;
+                for(let i=0;i<processed.length;i++){
+                  if(jpProcessed[i]) {
+                    allQuestions[startIndex + i].jpQuestion = jpProcessed[i].question;
+                    allQuestions[startIndex + i].jpExplanation = jpProcessed[i].explanation;
+                  }
+                }
+              }
+            }
+          }
         }
         if(allQuestions.length === 0) {
           sheetSelectionContainer.innerHTML = "<p>大乱斗套题没有题目。</p>";
@@ -1601,7 +1718,7 @@
     }
 
     /********************************************
-     * 继续考试时，修复“自动翻题”设置不同步
+     * 继续考试时，修复“自动翻题”等设置不同步
      ********************************************/
     function continueExam() {
       const exam = loadCurrentExam();
@@ -1610,9 +1727,10 @@
         return;
       }
 
-      // 强制更新 randomOrder / autoNext = 最新的UI设置
+      // 强制更新 randomOrder / autoNext / showJapanese = 最新的UI设置
       exam.randomOrder = loadRandomOrderSetting();
       exam.autoNext = loadAutoNextSetting();
+      exam.showJapanese = loadShowJapaneseSetting();
 
       const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs, isBattleMode:bm, isMistakeMode:mm, isFavoritesMode:fm} = exam;
       const total = qs.length;
@@ -1630,6 +1748,7 @@
 
         randomOrder = exam.randomOrder;
         autoNext = exam.autoNext;
+        showJapanese = exam.showJapanese;
         elapsedTime = exam.elapsedTime || 0;
 
         const randomCheckbox = document.getElementById('random-checkbox');
@@ -1639,6 +1758,10 @@
         const autoNextCheckbox = document.getElementById('autonext-checkbox');
         if (autoNextCheckbox) {
           autoNextCheckbox.checked = autoNext;
+        }
+        const showJapaneseCheckbox = document.getElementById('show-japanese-checkbox');
+        if(showJapaneseCheckbox) {
+          showJapaneseCheckbox.checked = showJapanese;
         }
 
         startQuizFromState();
