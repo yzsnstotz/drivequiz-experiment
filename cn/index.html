@@ -43,7 +43,17 @@
       font-size: 20px;
     }
 
-    #container, #quiz-container, #result-container, #mistake-review-container, #current-mistakes-container, #console-logs-container, #update-logs-container, #function-intro-container, #summary-container, #battle-mode-selection-container, #favorites-container {
+    #container,
+    #quiz-container,
+    #result-container,
+    #mistake-review-container,
+    #current-mistakes-container,
+    #console-logs-container,
+    #update-logs-container,
+    #function-intro-container,
+    #summary-container,
+    #battle-mode-selection-container,
+    #favorites-container {
       margin: 30px auto;
       max-width: 800px;
       border: 2px solid #ddd;
@@ -54,7 +64,8 @@
       display: none; /* Hidden by default */
     }
 
-    #container, #battle-mode-selection-container {
+    #container,
+    #battle-mode-selection-container {
       display: block; /* Show main container and battle mode selection by default */
     }
 
@@ -90,7 +101,8 @@
       line-height: 1.6;
     }
 
-    #info .top-buttons, #info .battle-buttons {
+    #info .top-buttons,
+    #info .battle-buttons {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
@@ -120,27 +132,29 @@
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
     }
 
+    /* 优化三大复选框的排版(随机题序、自动翻题、显示日语) */
     #random-option {
       display: flex;
+      flex-wrap: wrap;
       justify-content: center;
-      align-items: center;
-      gap: 20px;
+      gap: 10px;
       margin-bottom: 20px;
     }
     #random-option label {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       cursor: pointer;
-      padding:10px 20px;
-      border:2px solid #007BFF;
-      border-radius:5px;
-      background:#fff;
+      padding: 6px 10px;
+      border: 1px solid #007BFF;
+      border-radius: 5px;
+      background: #fff;
+      font-size: 14px;
     }
     #random-option input[type="checkbox"] {
-      width:24px;
-      height:24px;
-      margin-right:10px;
-      vertical-align:middle;
+      width: 20px;
+      height: 20px;
+      margin-right: 6px;
+      vertical-align: middle;
     }
 
     #question {
@@ -172,12 +186,14 @@
       object-fit: contain;
     }
 
-    .options, .controls {
+    .options,
+    .controls {
       display: flex;
       justify-content: space-around;
       margin-top: 15px;
     }
-    .options button, .controls button {
+    .options button,
+    .controls button {
       flex: 1;
       margin: 0 5px;
     }
@@ -245,13 +261,15 @@
       color: #333;
     }
 
-    #mistake-questions > div, #current-mistakes-list > div {
+    #mistake-questions > div,
+    #current-mistakes-list > div {
       border-bottom: 1px solid #ccc;
       margin-bottom: 15px;
       padding-bottom: 15px;
       line-height: 1.4;
     }
-    #mistake-questions img, #current-mistakes-list img {
+    #mistake-questions img,
+    #current-mistakes-list img {
       margin-top: 10px;
       border-radius: 5px;
       max-height:150px;
@@ -259,7 +277,14 @@
       max-width:100%;
     }
 
-    #mistake-review-container button, #current-mistakes-container button, #console-logs-container button, #update-logs-container button, #function-intro-container button, #summary-container button, #battle-mode-selection-container button, #favorites-container button {
+    #mistake-review-container button,
+    #current-mistakes-container button,
+    #console-logs-container button,
+    #update-logs-container button,
+    #function-intro-container button,
+    #summary-container button,
+    #battle-mode-selection-container button,
+    #favorites-container button {
       margin-top: 10px;
     }
 
@@ -268,7 +293,9 @@
       border-collapse: collapse;
       margin-top:20px;
     }
-    #console-logs-content table, #console-logs-content th, #console-logs-content td {
+    #console-logs-content table,
+    #console-logs-content th,
+    #console-logs-content td {
       border:1px solid #ccc;
       padding:5px;
       text-align:left;
@@ -278,11 +305,16 @@
       background: #f9f9f9;
     }
 
-    #update-logs-container, #function-intro-container, #summary-container, #battle-mode-selection-container, #favorites-container {
+    #update-logs-container,
+    #function-intro-container,
+    #summary-container,
+    #battle-mode-selection-container,
+    #favorites-container {
       display:none;
     }
 
-    #update-logs-list, #summary-content {
+    #update-logs-list,
+    #summary-content {
       font-size:14px;
       line-height:1.6;
     }
@@ -323,7 +355,8 @@
       width: 100%;
       border-collapse: collapse;
     }
-    .summary-sheet th, .summary-sheet td {
+    .summary-sheet th,
+    .summary-sheet td {
       border: 1px solid #ccc;
       padding: 8px;
       text-align: center;
@@ -333,10 +366,12 @@
     }
 
     /* Summary Performance Styles */
-    .individual-performance, .average-performance {
+    .individual-performance,
+    .average-performance {
       margin-bottom: 10px;
     }
-    .individual-performance p, .average-performance p {
+    .individual-performance p,
+    .average-performance p {
       margin: 5px 0;
     }
 
@@ -437,7 +472,7 @@
       <label>
         <input type="checkbox" id="autonext-checkbox"> 自动翻题
       </label>
-      <!-- 新增「显示日语」复选框 -->
+      <!-- 新增「显示日语」复选框：布局优化以更好适配移动端 -->
       <label>
         <input type="checkbox" id="show-japanese-checkbox"> 显示日语
       </label>
@@ -603,7 +638,6 @@
      *    (其结构与旧/新表格相同，只是存放了对应的日语题干与解说)
      **************************************************/
     const jpSpreadsheetId = "1B3k4cKFSJK0PT3lpabHhedPohbWYUt1UfncdDI_ryYk";
-    // 注意：访问同一个 key
     const jpApiKey = newApiKey; // 直接复用 newApiKey 即可
 
     // 统一存储 sheet 列表
@@ -626,7 +660,6 @@
 
     let randomOrder = loadRandomOrderSetting();
     let autoNext = loadAutoNextSetting();
-
     // 新增 - 日语显示开关
     let showJapanese = loadShowJapaneseSetting();
 
@@ -684,7 +717,7 @@
     });
 
     /********************************************
-     * “随机题序”和“自动翻题”、“显示日语”本地存储读写
+     * “随机题序”“自动翻题”“显示日语” 本地存储
      ********************************************/
     function loadRandomOrderSetting() {
       const setting = localStorage.getItem('randomOrder');
@@ -813,7 +846,7 @@
     }
 
     /************************************************
-     * 新增：同时获取旧表格 & 新表格的 Sheet 名称
+     * 同时获取旧表格 & 新表格的 Sheet 名称
      ************************************************/
     async function fetchSheetNamesFromBothLibraries() {
       sheetList = []; // 重置
@@ -840,7 +873,7 @@
     }
 
     /*********************************************
-     * 根据给定 spreadId/apiKey/type 获取sheet名称
+     * 获取sheet名称核心函数
      *********************************************/
     async function fetchSheetNamesCore(spreadId, key, type) {
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadId}?key=${key}`;
@@ -926,8 +959,8 @@
     }
 
     /************************************************
-     * 根据 sheet 来获取题目（分别判断来自旧或新表格），
-     * 并在勾选「显示日语」时，额外获取日文数据
+     * 根据 sheetName/from 获取题目
+     * 若勾选「显示日语」，则并行获取日文题
      ************************************************/
     async function fetchQuestions(sheetName, from) {
       const sheetNameElem = document.getElementById('sheet-name');
@@ -937,15 +970,12 @@
 
       try {
         let url = "";
-        let key = "";
 
         // 判断来自旧表格还是新表格
         if(from === "old") {
           url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${apiKey}`;
-          key = apiKey;
         } else {
           url = `https://sheets.googleapis.com/v4/spreadsheets/${newSpreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${newApiKey}`;
-          key = newApiKey;
         }
 
         const response = await fetch(url);
@@ -968,16 +998,14 @@
         // 先处理基础题目
         questions = processSheetData(data.values, from); 
 
-        // 如果勾选了「显示日语」，则并行获取日语题
+        // 如果勾选了「显示日语」，额外获取日语题
         if(showJapanese) {
-          // 同样的sheetName行对应
           const jpUrl = `https://sheets.googleapis.com/v4/spreadsheets/${jpSpreadsheetId}/values/${encodeURIComponent(sheetName)}?key=${jpApiKey}`;
           const jpResponse = await fetch(jpUrl);
           if(jpResponse.ok) {
             const jpData = await jpResponse.json();
             if(jpData.values && jpData.values.length >= 1) {
-              // 把日语的题目 & 解说合并到 questions 中
-              const jpQuestions = processSheetData(jpData.values, from, true); // 加个参数 isJP=true
+              const jpQuestions = processSheetData(jpData.values, from, true);
               // 按行顺序合并
               questions.forEach((q, idx) => {
                 if(jpQuestions[idx]) {
@@ -1001,14 +1029,15 @@
     }
 
     /************************************************
-     * 处理表格数据（区分 old/new），若 isJP=true 则表示解析日语表格
+     * 处理表格数据（区分 old/new）
+     * 若 isJP=true 表示解析日语表格
      ************************************************/
     function processSheetData(values, from, isJP=false) {
       if(from === "old") {
         // 旧表格：question=row[1], image=row[2], answer=row[8]('o'->⭕/'x'->❌), explanation=row[7]
         return values.map((row, idx) => {
           let qText = row[1] ? row[1].replace(/\u200B/g, '').trim() : "";
-          if (!qText) {
+          if (!qText && !isJP) {
             logEmptyQuestion(row, idx, currentSheetName);
           }
           const qImage = row[2] ? row[2].trim() : "";
@@ -1023,7 +1052,6 @@
             sheetSource: from
           };
         }).filter(q => {
-          // 如果是日语题(isJP)，允许题目为空；否则不允许
           if(isJP) return true;
           return q.question !== "无题目";
         });
@@ -1031,7 +1059,7 @@
         // 新表格：question=row[0], image=row[1], answer=row[2]('o'->⭕/'x'->❌), explanation=row[3]
         return values.map((row, idx) => {
           let qText = row[0] ? row[0].replace(/\u200B/g, '').trim() : "";
-          if (!qText) {
+          if (!qText && !isJP) {
             logEmptyQuestion(row, idx, currentSheetName);
           }
           const qImage = row[1] ? row[1].trim() : "";
@@ -1155,7 +1183,7 @@
           console.log("图片加载失败：", q.image);
           imageContainer.innerHTML = '';
           imageContainer.style.display='none';
-        }
+        };
       } else {
         imageContainer.style.display='none';
         imageContainer.innerHTML = '';
@@ -1199,9 +1227,6 @@
       document.getElementById('btn-wrong').classList.remove('highlight');
     }
 
-    /***********************************************
-     * 显示/隐藏答案，若勾选了日语，则附带显示日文解说
-     ***********************************************/
     function toggleAnswer() {
       const q = questions[currentQuestionIndex];
       const correctAnswer = q.answer;
@@ -1247,7 +1272,7 @@
     }
 
     /********************************************
-     * 收藏功能：点击“⭐”切换收藏状态
+     * 收藏功能
      ********************************************/
     function getFavoriteKey(qObj) {
       // 用题目+答案+图片+解释等拼成唯一key
@@ -1368,9 +1393,10 @@
       const progressBar = document.getElementById('progress-bar');
       progressBar.style.width = `${completionPercentage}%`;
       progressBar.innerText = `${completionPercentage}%`;
-      progressBar.style.backgroundColor = completionPercentage >= 90 ? '#28a745' :
-                                         completionPercentage >= 70 ? '#ffc107' :
-                                         '#dc3545';
+      progressBar.style.backgroundColor =
+        completionPercentage >= 90 ? '#28a745' :
+        completionPercentage >= 70 ? '#ffc107' :
+        '#dc3545';
 
       document.getElementById('quiz-container').style.display = 'none';
       document.getElementById('result-container').style.display = 'block';
@@ -1502,7 +1528,6 @@
 
     /********************************************
      * 改造：错题复习 => 专门的“错题单元测试”
-     * 进入时也会尝试获取日语题
      ********************************************/
     async function startMistakeQuiz() {
       // 从本地错题库取出
@@ -1523,7 +1548,7 @@
           sheetName: item.sheetName || "",
           userAnswer: item.userAnswer || "",
           count: item.count || 1,
-          sheetSource: item.sheetSource || "old" // 如果没存储来源，默认old
+          sheetSource: item.sheetSource || "old"
         });
       });
       isMistakeMode = true;
@@ -1532,12 +1557,8 @@
 
       currentSheetName = "错题集";
       questions = mistakeArray;
-      // 如有需要显示日语，就加载对应sheetName日文(只能尽力匹配)
       if(showJapanese) {
-        // 这里仅做示例：我们统一假定所有错题都来自当前 sheetName 或「sheetSource=old/new 对应sheetName」；
-        // 如果有更复杂的逻辑(比如多套题多行)需自行扩展
-        // 简易写法：不对行精确匹配，只给出提示
-        console.log("【提示】错题模式下，如需准确定位日语题，需要结合题目行号等信息做更精细的匹配逻辑。此处仅做保留。");
+        console.log("【提示】错题模式下，如需准确定位日语题，需要结合题目行号等信息做更精细的匹配逻辑。");
       }
 
       if(randomOrder) {
@@ -1598,9 +1619,8 @@
       currentSheetName = "我的收藏";
       questions = favArray;
 
-      // 如需显示日语，也可再行抓取
       if(showJapanese) {
-        console.log("【提示】收藏题也可以与日语题对照匹配，需要与实际Sheet行号对应才可精确匹配。此处简化处理。");
+        console.log("【提示】收藏题也需要行号匹配才能精准显示日语。此处简化处理。");
       }
 
       if(randomOrder) {
@@ -1667,7 +1687,6 @@
           }
 
           // 若勾选了显示日语，也加载对应Sheet的日文
-          // 最后再进行合并
           if(showJapanese) {
             const jpUrl = `https://sheets.googleapis.com/v4/spreadsheets/${jpSpreadsheetId}/values/${encodeURIComponent(shName)}?key=${jpApiKey}`;
             const jpResponse = await fetch(jpUrl);
@@ -1718,7 +1737,7 @@
     }
 
     /********************************************
-     * 继续考试时，修复“自动翻题”等设置不同步
+     * 继续考试时，修复“自动翻题”“显示日语” 等设置同步
      ********************************************/
     function continueExam() {
       const exam = loadCurrentExam();
@@ -1732,7 +1751,15 @@
       exam.autoNext = loadAutoNextSetting();
       exam.showJapanese = loadShowJapaneseSetting();
 
-      const {sheetName, currentQuestionIndex: idx, userAnswers:ua, questions:qs, isBattleMode:bm, isMistakeMode:mm, isFavoritesMode:fm} = exam;
+      const {
+        sheetName,
+        currentQuestionIndex: idx,
+        userAnswers: ua,
+        questions: qs,
+        isBattleMode: bm,
+        isMistakeMode: mm,
+        isFavoritesMode: fm
+      } = exam;
       const total = qs.length;
       const progress = idx + 1;
       const confirmContinue = confirm(`检测到您上次考试未完成（套题名称：${sheetName}，进度：${progress}/${total}），是否继续？`);
@@ -1751,6 +1778,7 @@
         showJapanese = exam.showJapanese;
         elapsedTime = exam.elapsedTime || 0;
 
+        // 同步UI复选框
         const randomCheckbox = document.getElementById('random-checkbox');
         if (randomCheckbox) {
           randomCheckbox.checked = randomOrder;
