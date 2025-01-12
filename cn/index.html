@@ -450,6 +450,37 @@
       cursor: pointer;
     }
   </style>
+  
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ER1N8KVZPZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  // 自动识别路径并记录语言属性
+  const languageMap = {
+    '/jp': 'Japanese',
+    '/cn': 'Chinese',
+    '/en': 'English',
+    '/vn': 'Vietnamese',
+    '/kr': 'Korean'
+  };
+  const currentPath = window.location.pathname;
+  const currentLanguage = languageMap[currentPath] || 'Unknown';
+
+  // 配置页面路径
+  gtag('config', 'G-ER1N8KVZPZ', {
+    'page_path': currentPath
+  });
+
+  // 自定义事件记录语言属性
+  gtag('event', 'set_language', {
+    'event_category': 'Language',
+    'event_label': currentLanguage,
+    'value': 1
+  });
+</script>
 </head>
 <body>
   <!-- 大标题板块，包含域名/口号/标题 -->
