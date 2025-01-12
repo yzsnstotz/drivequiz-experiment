@@ -90,17 +90,42 @@
       z-index: 1;
     }
   </style>
+
+  <!-- Google Analytics 代码 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-ER1N8KVZPZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    // 配置 Google Analytics，自动记录页面路径
+    gtag('config', 'G-ER1N8KVZPZ', {
+      'cookie_domain': 'zalem.app',
+      'cookie_flags': 'SameSite=None;Secure',
+      'page_path': window.location.pathname
+    });
+
+    // 自定义事件：记录用户点击语言按钮的行为
+    function trackLanguageSelection(language) {
+      gtag('event', 'language_select', {
+        'event_category': 'Language Selection',
+        'event_label': language, // 语言名称
+        'value': 1 // 固定值，用于统计点击事件
+      });
+    }
+  </script>
 </head>
 <body>
   <div class="container">
     <img src="https://github.com/yzsnstotz/drivequiz/blob/main/WechatIMG15.jpg?raw=true" alt="Zalem Brand" class="brand-image">
     <div class="slogan">足利自動車学校へようこそ！</div>
     <div class="language-buttons">
-      <a href="/jp" class="language-btn jp">日本語</a>
-      <a href="/cn" class="language-btn cn">中文</a>
-      <a href="/en" class="language-btn en">English</a>
-      <a href="/vn" class="language-btn vn">Tiếng Việt</a>
-      <a href="/kr" class="language-btn kr">한국어</a>
+      <!-- 添加点击事件统计 -->
+      <a href="/jp" class="language-btn jp" onclick="trackLanguageSelection('Japanese')">日本語</a>
+      <a href="/cn" class="language-btn cn" onclick="trackLanguageSelection('Chinese')">中文</a>
+      <a href="/en" class="language-btn en" onclick="trackLanguageSelection('English')">English</a>
+      <a href="/vn" class="language-btn vn" onclick="trackLanguageSelection('Vietnamese')">Tiếng Việt</a>
+      <a href="/kr" class="language-btn kr" onclick="trackLanguageSelection('Korean')">한국어</a>
     </div>
   </div>
 </body>
