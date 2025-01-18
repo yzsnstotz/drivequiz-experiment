@@ -799,85 +799,72 @@
   let isDragging = false;
   let startX = 0;
   let scrollStart = 0;
-  let scrollSpeed = 0;
-  let lastTime = 0;
+  let lastScrollLeft = 0;  // 用于计算惯性
+  let momentum = 0;        // 慯性计算（阻尼效果）
+  let inertiaFactor = 0.5; // 惯性系数，决定滑动的距离
+  let dampingFactor = 0.1; // 阻尼系数，决定滑动减缓的速度
 
-  // 给整个容器添加拖拽监听事件，扩大可拖拽区域
+  // 开始拖拽
   slider.addEventListener('mousedown', (e) => {
-    // 仅在点击区域内触发拖拽操作
-    if (e.target === slider || slider.contains(e.target)) {
-      isDragging = true;
-      startX = e.pageX - slider.offsetLeft;
-      scrollStart = slider.scrollLeft;
-      slider.style.cursor = 'grabbing'; // 拖拽时的光标
-      slider.style.userSelect = 'none'; // 禁止文字选择
-    }
+    isDragging = true;
+    startX = e.pageX - slider.offsetLeft;
+    scrollStart = slider.scrollLeft;
+    slider.style.cursor = 'grabbing';
+    slider.style.userSelect = 'none';
   });
 
   // 结束拖拽
   slider.addEventListener('mouseup', () => {
     isDragging = false;
-    slider.style.cursor = 'grab'; // 恢复光标
-    applyInertia(); // 结束时应用惯性滚动
+    slider.style.cursor = 'grab';
   });
 
   slider.addEventListener('mouseleave', () => {
-    isDragging = false; // 鼠标移出时停止拖拽
+    isDragging = false;
     slider.style.cursor = 'grab';
-    applyInertia(); // 结束时应用惯性滚动
   });
 
   // 鼠标移动时滚动
   slider.addEventListener('mousemove', (e) => {
-    if (!isDragging) return; // 仅在拖拽状态下生效
-
+    if (!isDragging) return;
     const x = e.pageX - slider.offsetLeft;
-    const distance = (x - startX); // 调整速度
+    const distance = (x - startX); // 直接计算距离，去掉延迟因素
     slider.scrollLeft = scrollStart - distance;
 
-    // 计算滚动速度用于惯性
-    const currentTime = Date.now();
-    const timeDifference = currentTime - lastTime;
-    lastTime = currentTime;
-    scrollSpeed = distance / timeDifference;
+    // 增加惯性计算
+    momentum = distance - (lastScrollLeft - slider.scrollLeft);
+    lastScrollLeft = slider.scrollLeft;
   });
 
-  // 为触屏设备增加触控支持
+  // 使用 `requestAnimationFrame` 来平滑滚动，加入阻尼和惯性效果
+  function smoothScroll() {
+    if (!isDragging && Math.abs(momentum) > 0.1) {
+      slider.scrollLeft += momentum * inertiaFactor;
+      momentum *= dampingFactor; // 加入阻尼
+      requestAnimationFrame(smoothScroll); // 继续平滑滚动
+    }
+  }
+
+  // 当停止拖拽时开始惯性滚动
+  slider.addEventListener('mouseup', () => {
+    if (!isDragging) {
+      requestAnimationFrame(smoothScroll); // 启动惯性滚动
+    }
+  });
+
+  // 触控事件（保持一致的拖拽体验）
   slider.addEventListener('touchstart', (e) => {
     startX = e.touches[0].pageX - slider.offsetLeft;
     scrollStart = slider.scrollLeft;
-    cancelAnimationFrame(scrollAnimationId); // 取消之前的动画
   });
 
   slider.addEventListener('touchmove', (e) => {
     const x = e.touches[0].pageX - slider.offsetLeft;
-    const distance = (x - startX); // 调整速度
+    const distance = (x - startX);
     slider.scrollLeft = scrollStart - distance;
-  });
-
-  // 应用惯性效果
-  let scrollAnimationId;
-  function applyInertia() {
-    if (Math.abs(scrollSpeed) < 0.1) return; // 当速度足够小停止惯性滚动
-
-    const inertiaDistance = scrollSpeed * 50; // 设置惯性强度，50为惯性系数
-    slider.scrollLeft += inertiaDistance;
-
-    scrollSpeed *= 0.95; // 阻尼效果，每次减少速度的5%
-    scrollAnimationId = requestAnimationFrame(applyInertia); // 继续动画
-  }
-
-  // 鼠标和触摸设备共享相同的光标样式
-  slider.style.cursor = 'grab'; // 默认光标为抓手
-
-  // 启动拖拽功能
-  document.addEventListener('DOMContentLoaded', () => {
-    enableSliderDragging();
   });
 }
 
-// 调用启用拖拽的方法
-enableSliderDragging();
 
 
 
