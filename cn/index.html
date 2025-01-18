@@ -799,9 +799,9 @@
   let isDragging = false;
   let startX = 0;
   let scrollStart = 0;
-  let lastScrollLeft = 0;  // 用于计算惯性
+  let lastScrollLeft = 0.1;  // 用于计算惯性
   let momentum = 0;        // 慯性计算（阻尼效果）
-  let inertiaFactor = 0.5; // 惯性系数，决定滑动的距离
+  let inertiaFactor = 1; // 惯性系数，决定滑动的距离
   let dampingFactor = 0.1; // 阻尼系数，决定滑动减缓的速度
 
   // 开始拖拽
