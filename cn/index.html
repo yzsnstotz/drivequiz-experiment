@@ -824,9 +824,9 @@ img, iframe, .container, .content {
   let isDragging = false;
   let startX = 0;
   let scrollStart = 0;
-  let lastScrollLeft = 0.2;  // 用于计算惯性
-  let momentum = 0;        // 慯性计算（阻尼效果）
-  let inertiaFactor = 2; // 惯性系数，决定滑动的距离
+  let lastScrollLeft = 0.3;  // 用于计算惯性
+  let momentum = 3;        // 慯性计算（阻尼效果）
+  let inertiaFactor = 50; // 惯性系数，决定滑动的距离
   let dampingFactor = 0.1; // 阻尼系数，决定滑动减缓的速度
 
   // 开始拖拽
