@@ -832,8 +832,8 @@ img, iframe, .container, .content {
 let scrollDistance = 5 * imageWidth;  // 每次滑动滚动5张图的距离
 
 let lastScrollLeft = 0.2;  // 上一次滚动位置
-let momentum = 0;        // 当前的动量
-let inertiaFactor = 50;  // 惯性系数，设定较大的值以确保滚动足够远
+let momentum = 1;        // 当前的动量
+let inertiaFactor = 100;  // 惯性系数，设定较大的值以确保滚动足够远
 let dampingFactor = 0.1; // 阻尼系数，设定较小的值以保持较长的滑动时间
 
 
