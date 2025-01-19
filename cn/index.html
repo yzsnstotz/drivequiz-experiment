@@ -150,7 +150,7 @@ img, iframe, .container, .content {
     }
     .slider-item {
       display: inline-block;
-      width: flex; /* 可根据需求调整宽度 */
+      width: 200px; /* 可根据需求调整宽度 */
       margin-right: 10px;
       border-radius: 10px;
       overflow: hidden; /* 防止溢出 */
@@ -667,14 +667,14 @@ img, iframe, .container, .content {
         const d = await r.json();
         if(!d.values || d.values.length<=1) return [];
 
-        // 假设结构 [A=商家ID, B=position, C=图片URL, D=跳转链接, ..., J=文案]
+        // 假设结构 [A=商家ID, B=position, M=图片URL, D=跳转链接, ..., J=文案]
         const rows = d.values.slice(1);
         return rows.map(row=>{
           return {
             id: row[0] || "",        
             position: (row[1] || "").trim(), 
             image: row[2] || "",     
-            link:  row[3] || "#",
+            link:  row[12] || "#",
             textJ: row[9] || ""      
           };
         }).filter(x=> x.id && x.position && x.image);
@@ -683,7 +683,7 @@ img, iframe, .container, .content {
         return [];
       }
     }
-
+    
     // 加载顶部 Banner (position=1) 并轮播
     let topBannerIndex = 0;
     let topBannerArr = [];
@@ -704,7 +704,7 @@ img, iframe, .container, .content {
       const b = topBannerArr[topBannerIndex];
       const cont = document.getElementById('banner-top');
       cont.innerHTML = `
-        <a href="${b.link}" target="_blank">
+        <a href=./ads/pages/merchant.html?merchantId=${b.id} target="_blank">
           <img src="${b.image}" alt="广告" style="height:100%;width:auto;"/>
         </a>
       `;
@@ -729,7 +729,7 @@ img, iframe, .container, .content {
         let slot = document.createElement('div');
         slot.className = "banner-slot";
         slot.innerHTML = `
-          <a href="${b.link}" target="_blank">
+          <a href="./ads/pages/merchant.html?merchantId=${b.id}" target="_blank">
             <img src="${b.image}" alt="广告" />
           </a>
         `;
@@ -754,7 +754,7 @@ img, iframe, .container, .content {
         const div = document.createElement('div');
         div.className = "slider-item";
         div.innerHTML = `
-          <a href="${item.link}" target="_blank">
+          <a href="./ads/pages/merchant.html?merchantId=${item.id}" target="_blank">
             <img src="${item.image}" alt="slider广告" />
             <div class="slider-text">${item.textJ || ""}</div>
           </a>
@@ -821,34 +821,39 @@ img, iframe, .container, .content {
     let autoNext = loadAutoNextSetting();
     let showJapanese = loadShowJapaneseSetting();
 
-    //实现宽屏滑动
-
+    /***************************************
+ * 滑动广告栏的控制
+ * **************************************/
     function enableSliderDragging() {
   const slider = document.getElementById('slider-banner-container');
   let isDragging = false;
   let startX = 0;
   let scrollStart = 0;
-  let imageWidth = 300; // 假设每张图片宽度为300px
-let scrollDistance = 5 * imageWidth;  // 每次滑动滚动5张图的距离
+  let imageWidth = 300;  // 假设每张图片宽度为300px
+  let scrollDistance = 5 * imageWidth;  // 每次滑动滚动5张图的距离
 
-let lastScrollLeft = 0.2;  // 上一次滚动位置
-let momentum = 1;        // 当前的动量
-let inertiaFactor = 100;  // 惯性系数，设定较大的值以确保滚动足够远
-let dampingFactor = 0.1; // 阻尼系数，设定较小的值以保持较长的滑动时间
+  let lastScrollLeft = 0;  // 上一次滚动位置
+  let momentum = 1;        // 当前的动量
+  let inertiaFactor = 100;  // 惯性系数，设定较大的值以确保滚动足够远
+  let dampingFactor = 0.1; // 阻尼系数，设定较小的值以保持较长的滑动时间
+  let currentTranslateX = 0; // 当前滑动的位置（transform方式）
 
+  // 计算滑动的惯性
+  function updateScroll() {
+    let delta = lastScrollLeft - slider.scrollLeft;  // 滚动位置变化的距离
+    momentum = delta * inertiaFactor;  // 计算当前的惯性，乘以惯性系数
+    lastScrollLeft = slider.scrollLeft;  // 更新上一次滚动的位置
+  }
 
-// 计算滑动的惯性
-function updateScroll() {
-  let delta = lastScrollLeft - scrollPosition;  // 滚动位置变化的距离
-  momentum = delta * inertiaFactor;  // 计算当前的惯性，乘以惯性系数
-  lastScrollLeft = scrollPosition;  // 更新上一次滚动的位置
-}
+  // 平滑滚动
+  function smoothScroll() {
+    if (!isDragging && Math.abs(momentum) > 0.1) {
+      slider.scrollLeft += momentum * inertiaFactor;  // 根据惯性更新滚动位置
+      momentum *= dampingFactor; // 应用阻尼效果，让动量逐渐减小
+      requestAnimationFrame(smoothScroll); // 继续平滑滚动
+    }
+  }
 
-// 每次滑动时，使用惯性计算滚动
-function applyInertia() {
-  scrollPosition += momentum;
-  momentum *= dampingFactor; // 应用阻尼效果，让动量逐渐减小
-}
   // 开始拖拽
   slider.addEventListener('mousedown', (e) => {
     isDragging = true;
@@ -862,11 +867,13 @@ function applyInertia() {
   slider.addEventListener('mouseup', () => {
     isDragging = false;
     slider.style.cursor = 'grab';
+    requestAnimationFrame(smoothScroll); // 启动惯性滚动
   });
 
   slider.addEventListener('mouseleave', () => {
     isDragging = false;
     slider.style.cursor = 'grab';
+    requestAnimationFrame(smoothScroll); // 启动惯性滚动
   });
 
   // 鼠标移动时滚动
@@ -881,57 +888,35 @@ function applyInertia() {
     lastScrollLeft = slider.scrollLeft;
   });
 
-  // 使用 `requestAnimationFrame` 来平滑滚动，加入阻尼和惯性效果
-  function smoothScroll() {
-    if (!isDragging && Math.abs(momentum) > 0.1) {
-      slider.scrollLeft += momentum * inertiaFactor;
-      momentum *= dampingFactor; // 加入阻尼
-      requestAnimationFrame(smoothScroll); // 继续平滑滚动
-    }
-  }
-
-  // 当停止拖拽时开始惯性滚动
-  slider.addEventListener('mouseup', () => {
-    if (!isDragging) {
-      requestAnimationFrame(smoothScroll); // 启动惯性滚动
-    }
+  // 触摸事件：touchstart
+  slider.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].pageX;
+    lastScrollLeft = slider.scrollLeft;
+    momentum = 0;  // 重置动量
   });
 
-  slider.addEventListener('touchstart', (e) => {
-  startX = e.touches[0].pageX;
-  lastVelocity = 0;  // 重置速度
-  momentum = 0;      // 重置动量
-});
+  // 触摸事件：touchmove
+  let lastVelocity = 0;
+  slider.addEventListener('touchmove', (e) => {
+    const moveX = e.touches[0].pageX;
+    const deltaX = moveX - startX;  // 计算触摸滑动的距离
+    currentTranslateX -= deltaX;   // 根据滑动距离更新滑动窗口的位置
+    slider.style.transform = `translateX(${currentTranslateX}px)`;  // 应用transform
 
-slider.addEventListener('touchmove', (e) => {
-  const moveX = e.touches[0].pageX;
-  const deltaX = moveX - startX;  // 计算触摸滑动的距离
-  currentTranslateX -= deltaX;   // 根据滑动距离更新滑动窗口的位置
-  slider.style.transform = `translateX(${currentTranslateX}px)`;  // 应用transform
+    // 计算当前速度（滑动速度）
+    lastVelocity = deltaX;
 
-  // 计算当前速度（滑动速度）
-  lastVelocity = deltaX;
+    // 更新 startX 以便计算下一次的滑动距离
+    startX = moveX;
+  });
 
-  // 更新 startX 以便计算下一次的滑动距离
-  startX = moveX;
-});
-
-slider.addEventListener('touchend', () => {
-  // 启动惯性滚动
-  momentum = lastVelocity;  // 使用最后的速度作为惯性起点
-  requestAnimationFrame(smoothScroll);  // 启动惯性滚动
-});
-
-function smoothScroll() {
-  if (Math.abs(momentum) > 0.1) {
-    // 使用惯性更新滑动位置
-    currentTranslateX += momentum * inertiaFactor;
-    slider.style.transform = `translateX(${currentTranslateX}px)`; // 更新 transform
-    momentum *= dampingFactor;  // 应用阻尼，逐渐减小惯性
-    requestAnimationFrame(smoothScroll);  // 继续惯性滑动
-  }
+  // 触摸事件：touchend
+  slider.addEventListener('touchend', () => {
+    momentum = lastVelocity;  // 使用最后的速度作为惯性起点
+    requestAnimationFrame(smoothScroll);  // 启动惯性滚动
+  });
 }
-    }
+
 
 
 
