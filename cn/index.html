@@ -435,72 +435,181 @@ img, iframe, .container, .content {
       font-weight: normal;
     }
 
-    /*******************************************************
-     * 10. 新式底部Popup（参考Uber Eats）
-     *     - 半圆形 + 底部出现 + 渐入/渐出动画
-     *******************************************************/
-    #popup-ad-mask {
-      position: fixed;
-      left: 0;
-      bottom: 0;
-      width: 100%;
-      height: 0; /* 初始不可见，通过添加 show 类控制 */
-      overflow: hidden;
-      z-index: 9999;
-      transition: height 0.5s ease;
-    }
-    /* 半圆容器 */
-    #popup-ad-container {
-      position: absolute;
-      bottom: 0;
-      width: 100%;
-      height: 12vh;
-      background-color: #24A148; /* Uber Eats 风格绿色 */
-      border-top-left-radius: 50% 20vw;
-      border-top-right-radius: 50% 20vw;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      transform: translateY(100%); /* 初始在屏幕下方 */
-      transition: transform 0.9s ease;
-    }
-    /* 显示时 */
-    #popup-ad-mask.show {
-      height: 20%; /* 占满底部可视区域 */
-    }
-    #popup-ad-mask.show #popup-ad-container {
-      transform: translateY(0); /* 上移显示 */
-    }
-    /* 关闭按钮 */
-    #popup-ad-close-btn {
-      position: absolute;
-      top: 10px; 
-      right: 20px;
-      background: none;
-      border: none;
-      font-size: 10px;
-      cursor: pointer;
-      color: #999;
-    }
-    #popup-ad-close-btn:hover {
-      color: #333;
-    }
-    /* 小图标 */
-    #popup-ad-img {
-      max-height: 30%;
-      object-fit: contain;
-      margin-bottom: 30px;
-    }
-    /* 文案 */
-    #popup-ad-text {
-      margin: 0 30px;
-      font-size: 20px;
-      color: #ffffff;
-      line-height: 1.4;
-      text-align: center;
-    }
+
+
+/***************************************
+ * popup/* 弹窗基础样式 
+ * **************************************/
+.popup-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    display: none;
+}
+
+.popup-mask {
+    position: fixed;
+    inset: 0;
+    background-color: transparent;
+    transition: background-color 0.5s ease;
+    pointer-events: none;
+}
+
+.popup-mask.state-2 {
+    background-color: rgba(0, 0, 0, 0.7);
+    pointer-events: auto; 
+}
+
+.popup-content {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    transform: translateY(100%);
+    transition: transform 0.5s ease;
+    pointer-events: auto; 
+}
+
+/* 状态1样式 */
+.popup-state-1 {
+    background-color: #ffbf00;
+    border-top-left-radius: 50% 100%;
+    border-top-right-radius: 50% 100%;
+    height: 100px;
+    padding: 1rem;
+    color: white;
+    position: relative;
+}
+
+/* 状态2样式 */
+.popup-state-2 {
+    background-color: white;
+    border-top-left-radius: 50% 35%;
+    border-top-right-radius: 50% 35%;
+    min-height: 250px;
+    padding: 1.5rem;
+    display: none;
+}
+
+/* 图标样式 */
+.popup-icon {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.icon-box {
+    width: 48px;
+    height: 48px;
+    background-color: #ef4444;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-diamond {
+    width: 24px;
+    height: 24px;
+    background-color: #fcd34d;
+    transform: rotate(45deg);
+}
+
+/* 文本内容样式 */
+.popup-text-content {
+    text-align: center;
+    padding-top: 0.5rem;
+}
+
+.popup-title {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+}
+
+.popup-subtitle {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+/* 按钮样式 */
+.popup-close-btn {
+    position: absolute;
+    right: 1rem;
+    top: 3.5rem;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+
+.popup-state-2 .popup-close-btn {
+    top: 2rem;
+    color: #6b7280;
+}
+
+.popup-action-btn {
+    width: 100%;
+    background-color: #b45309;
+    color: white;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin: 1rem 0;
+    transition: background-color 0.3s ease;
+}
+
+.popup-action-btn:hover {
+    background-color: #92400e;
+}
+
+/* 展开内容样式 */
+.popup-expanded-content {
+    text-align: center;
+    padding-top: 2rem;
+}
+
+.popup-image {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border-radius: 0.5rem;
+    margin: 0 auto;
+}
+
+.popup-details {
+    margin: 1rem 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.popup-footer {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-top: 1rem;
+}
+
+/* 显示状态类 */
+.popup-container.show {
+    display: block;
+}
+
+.popup-container.show .popup-content {
+    transform: translateY(0);
+}
+
+.popup-container.state-2 .popup-state-1 {
+    display: none;
+}
+
+.popup-container.state-2 .popup-state-2 {
+    display: block;
+}
 
     /* 如果需要蒙层点击关闭，则可以给 #popup-ad-mask 添加背景:
        background-color: rgba(0,0,0,0.2);
@@ -637,14 +746,43 @@ img, iframe, .container, .content {
   <!-- 底部多 Banner 平铺区 (位置>=2) -->
   <div id="banner-bottom"></div>
 
-  <!-- 新式：底部半圆popup广告 -->
-  <div id="popup-ad-mask">
-    <div id="popup-ad-container">
-      <button id="popup-ad-close-btn" onclick="closePopupAd()">×</button>
-      <img id="popup-ad-img" src="" alt="广告图片" />
-      <div id="popup-ad-text"></div>
-    </div>
+<!-- 新式：底部半圆popup广告 -->
+<div id="popup-ad-container" class="popup-container">
+  <div id="popup-ad-mask" class="popup-mask" onclick="handleMaskClick()">
+      <div id="popup-ad-content" class="popup-content" onclick="handlePopupClick(event)">
+          <!-- 状态1：初始弹窗 -->
+          <div id="popup-state-1" class="popup-state-1">
+              <div class="popup-icon">
+                  <div class="icon-box">
+                      <div class="icon-diamond"></div>
+                  </div>
+              </div>
+              <div class="popup-text-content">
+                  <h3 id="popup-title-1" class="popup-title"></h3>
+                  <p class="popup-subtitle">Test 会员独享</p>
+              </div>
+              <button type="button" class="popup-close-btn" onclick="closePopup(event)">×</button>
+          </div>
+
+          <!-- 状态2：展开弹窗 -->
+          <div id="popup-state-2" class="popup-state-2">
+              <button type="button" class="popup-close-btn" onclick="closePopup(event)">×</button>
+              <div class="popup-expanded-content">
+                  <img id="popup-image" class="popup-image" alt="促销图片">
+                  <h3 id="popup-title-2" class="popup-title"></h3>
+                  <div class="popup-details">
+                      <p class="minimum-order">最低订单金额 JP¥1,500（不含优惠）</p>
+                      <p class="terms">适用于特定便利店家商店・酒类或其他受管制商品可能不符合享受此优惠的条件</p>
+                      <p class="additional-fees">可能还需支付其他当地费用/税费。</p>
+                  </div>
+                  <button type="button" class="popup-action-btn" onclick="handleActionClick()">领取优惠</button>
+                  <p class="popup-footer">查看详细信息</p>
+              </div>
+          </div>
+      </div>
   </div>
+</div>
+
 
 
   <script>
@@ -777,41 +915,102 @@ function loadSliderBanner() {
 }
 
 // 加载弹窗广告(position=popup)，底部半圆形
+// 全局状态
+let popupState = 1;
+let currentPopupData = null;
+
+// 加载弹窗广告
 function loadPopupAd() {
-  const popupData = allBannerData.filter(x => x.position === "popup");
-  if (!popupData.length) return; // 无则不显示
-  const pd = popupData[0];
-  
-  // 判断 type 是否为 "abs"，若是，使用 link 的绝对 URL
-  const popupUrl = pd.type === "abs" ? ensureAbsoluteUrl(pd.link) : `./ads/pages/merchant.html?merchantId=${pd.id}`;
-  
-  // 设置内容
-  document.getElementById('popup-ad-img').src = pd.image;
-  document.getElementById('popup-ad-link')?.setAttribute('href', popupUrl);
-  document.getElementById('popup-ad-text').textContent = pd.textJ || "";
-  
-  // 1秒后显示
-  setTimeout(() => {
-    document.getElementById('popup-ad-mask').classList.add('show');
-  }, 1000);
+    const popupData = allBannerData.filter(x => x.position === "popup");
+    if (!popupData.length) return;
+    
+    currentPopupData = popupData[0];
+    const popupUrl = currentPopupData.type === "abs" 
+        ? ensureAbsoluteUrl(currentPopupData.link) 
+        : `./ads/pages/merchant.html?merchantId=${currentPopupData.id}`;
+
+    // 获取所需的DOM元素
+    const container = document.getElementById('popup-ad-container');
+    const image = document.getElementById('popup-image');
+    const title1 = document.getElementById('popup-title-1');
+    const title2 = document.getElementById('popup-title-2');
+
+    // 检查必要的元素是否存在
+    if (!container || !image || !title1 || !title2) {
+        console.error('必要的DOM元素未找到，请检查HTML结构');
+        return;
+    }
+
+    // 设置内容
+    image.src = currentPopupData.image;
+    title1.textContent = currentPopupData.textJ || "";
+    title2.textContent = currentPopupData.textJ || "";
+
+    // 1秒后显示
+    setTimeout(() => {
+        container.classList.add('show');
+    }, 1000);
+}
+
+// 处理遮罩层点击
+function handleMaskClick() {
+    if (popupState === 2) {
+        setPopupState(1);
+    }
+}
+
+// 处理弹窗点击
+function handlePopupClick(event) {
+    event.stopPropagation();
+    if (popupState === 1) {
+        setPopupState(2);
+    }
 }
 
 // 关闭弹窗
-function closePopupAd() {
-  document.getElementById('popup-ad-mask').classList.remove('show');
+function closePopup(event) {
+    event.stopPropagation();
+    document.getElementById('popup-ad-container').classList.remove('show');
+    if (popupState === 2) {
+        setPopupState(1);
+    }
 }
 
-// 确保 URL 是绝对 URL，若是相对 URL 则将其转换为绝对 URL
+// 处理按钮点击
+function handleActionClick() {
+    if (!currentPopupData) return;
+    
+    const popupUrl = currentPopupData.type === "abs"
+        ? ensureAbsoluteUrl(currentPopupData.link)
+        : `./ads/pages/merchant.html?merchantId=${currentPopupData.id}`;
+        
+    window.open(popupUrl, '_blank');
+}
+
+// 设置弹窗状态
+function setPopupState(state) {
+    popupState = state;
+    const container = document.getElementById('popup-ad-container');
+    
+    if (state === 2) {
+        container.classList.add('state-2');
+        document.getElementById('popup-ad-mask').classList.add('state-2');
+    } else {
+        container.classList.remove('state-2');
+        document.getElementById('popup-ad-mask').classList.remove('state-2');
+    }
+}
+
+// 确保URL是绝对路径
 function ensureAbsoluteUrl(url) {
-  // 如果 URL 已经是以 "http://" 或 "https://" 开头，则认为它是一个绝对 URL
-  if (/^https?:\/\//i.test(url)) {
-    return url;
-  }
-  // 否则，假设是相对路径，拼接上站点的主 URL（例如 https://www.example.com）
-  const baseUrl = window.location.origin;  // 获取当前页面的主机部分（例如 https://www.example.com）
-  return baseUrl + url;
+    if (/^https?:\/\//i.test(url)) {
+        return url;
+    }
+    return `${window.location.origin}${url}`;
 }
 
+// 确保DOM加载完成后初始化
+document.addEventListener('DOMContentLoaded', loadPopupAd);
 
 
 
