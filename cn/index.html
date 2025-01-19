@@ -824,35 +824,16 @@ img, iframe, .container, .content {
     /***************************************
  * 滑动广告栏的控制
  * **************************************/
-    function enableSliderDragging() {
-  const slider = document.getElementById('slider-banner-container');
+ function enableSliderDragging() {
+  const slider = document.getElementById('slider-banner-container'); // 获取容器
   let isDragging = false;
   let startX = 0;
   let scrollStart = 0;
-  let imageWidth = 300;  // 假设每张图片宽度为300px
-  let scrollDistance = 5 * imageWidth;  // 每次滑动滚动5张图的距离
-
   let lastScrollLeft = 0;  // 上一次滚动位置
-  let momentum = 1;        // 当前的动量
-  let inertiaFactor = 100;  // 惯性系数，设定较大的值以确保滚动足够远
+  let momentum = 0;        // 当前的动量
+  let inertiaFactor = 0.1; // 惯性系数，较小的值可以更平滑的滚动
   let dampingFactor = 0.1; // 阻尼系数，设定较小的值以保持较长的滑动时间
   let currentTranslateX = 0; // 当前滑动的位置（transform方式）
-
-  // 计算滑动的惯性
-  function updateScroll() {
-    let delta = lastScrollLeft - slider.scrollLeft;  // 滚动位置变化的距离
-    momentum = delta * inertiaFactor;  // 计算当前的惯性，乘以惯性系数
-    lastScrollLeft = slider.scrollLeft;  // 更新上一次滚动的位置
-  }
-
-  // 平滑滚动
-  function smoothScroll() {
-    if (!isDragging && Math.abs(momentum) > 0.1) {
-      slider.scrollLeft += momentum * inertiaFactor;  // 根据惯性更新滚动位置
-      momentum *= dampingFactor; // 应用阻尼效果，让动量逐渐减小
-      requestAnimationFrame(smoothScroll); // 继续平滑滚动
-    }
-  }
 
   // 开始拖拽
   slider.addEventListener('mousedown', (e) => {
@@ -880,13 +861,22 @@ img, iframe, .container, .content {
   slider.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const x = e.pageX - slider.offsetLeft;
-    const distance = (x - startX); // 直接计算距离，去掉延迟因素
-    slider.scrollLeft = scrollStart - distance;
+    const distance = x - startX; // 计算滑动的距离
+    slider.scrollLeft = scrollStart - distance; // 更新滚动位置
 
-    // 增加惯性计算
+    // 计算惯性
     momentum = distance - (lastScrollLeft - slider.scrollLeft);
     lastScrollLeft = slider.scrollLeft;
   });
+
+  // 平滑滚动
+  function smoothScroll() {
+    if (!isDragging && Math.abs(momentum) > 0.1) {
+      slider.scrollLeft += momentum; // 根据惯性更新滚动位置
+      momentum *= dampingFactor; // 应用阻尼效果，减少动量
+      requestAnimationFrame(smoothScroll); // 继续平滑滚动
+    }
+  }
 
   // 触摸事件：touchstart
   slider.addEventListener('touchstart', (e) => {
@@ -896,26 +886,22 @@ img, iframe, .container, .content {
   });
 
   // 触摸事件：touchmove
-  let lastVelocity = 0;
   slider.addEventListener('touchmove', (e) => {
     const moveX = e.touches[0].pageX;
     const deltaX = moveX - startX;  // 计算触摸滑动的距离
-    currentTranslateX -= deltaX;   // 根据滑动距离更新滑动窗口的位置
-    slider.style.transform = `translateX(${currentTranslateX}px)`;  // 应用transform
+    slider.scrollLeft = lastScrollLeft - deltaX;  // 更新滚动位置
 
-    // 计算当前速度（滑动速度）
-    lastVelocity = deltaX;
-
-    // 更新 startX 以便计算下一次的滑动距离
-    startX = moveX;
+    // 计算惯性
+    momentum = deltaX - (lastScrollLeft - slider.scrollLeft);
+    lastScrollLeft = slider.scrollLeft;
   });
 
   // 触摸事件：touchend
   slider.addEventListener('touchend', () => {
-    momentum = lastVelocity;  // 使用最后的速度作为惯性起点
-    requestAnimationFrame(smoothScroll);  // 启动惯性滚动
+    requestAnimationFrame(smoothScroll); // 启动惯性滚动
   });
 }
+
 
 
 
