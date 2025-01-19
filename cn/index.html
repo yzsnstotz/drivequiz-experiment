@@ -673,117 +673,147 @@ img, iframe, .container, .content {
           return {
             id: row[0] || "",        
             position: (row[1] || "").trim(), 
+            type: row[3] || "".trim(),  
             image: row[2] || "",     
             link:  row[12] || "#",
             textJ: row[9] || ""      
           };
-        }).filter(x=> x.id && x.position && x.image);
+        }).filter(x=> x.id && x.position && x.image && x.type);
       }catch(e){
         console.error(e);
         return [];
       }
     }
+
     
-    // 加载顶部 Banner (position=1) 并轮播
-    let topBannerIndex = 0;
-    let topBannerArr = [];
-    let topBannerTimer = null;
-    async function loadTopBanner(){
-      allBannerData = await fetchAllBannerData();
-      topBannerArr = allBannerData.filter(x=> x.position==="1");
-      if(!topBannerArr.length){
-        document.getElementById('banner-top').style.display='none';
-        return;
-      }
-      document.getElementById('banner-top').style.display='flex';
-      updateTopBanner();
-      topBannerTimer = setInterval(updateTopBanner, 5000);
-    }
-    function updateTopBanner(){
-      if(!topBannerArr.length) return;
-      const b = topBannerArr[topBannerIndex];
-      const cont = document.getElementById('banner-top');
-      cont.innerHTML = `
-        <a href=./ads/pages/merchant.html?merchantId=${b.id} target="_blank">
-          <img src="${b.image}" alt="广告" style="height:100%;width:auto;"/>
-        </a>
-      `;
-      topBannerIndex++;
-      if(topBannerIndex >= topBannerArr.length) topBannerIndex=0;
-    }
+// 加载顶部 Banner (position=1) 并轮播
+let topBannerIndex = 0;
+let topBannerArr = [];
+let topBannerTimer = null;
 
-    // 加载底部 Banner (position>=2，但不等于 slider/popup)
-    async function loadBottomBanners(){
-      const bottom = document.getElementById('banner-bottom');
-      bottom.innerHTML = "";
-      // 过滤既不是 position=1、也不是 slider，也不是 popup 的行
-      let bottomData = allBannerData.filter(x=> {
-        return (x.position!=="1" && x.position!=="slider" && x.position!=="popup");
-      });
-      if(!bottomData.length){
-        bottom.style.display='none';
-        return;
-      }
-      bottom.style.display='flex';
-      bottomData.forEach(b=>{
-        let slot = document.createElement('div');
-        slot.className = "banner-slot";
-        slot.innerHTML = `
-          <a href="./ads/pages/merchant.html?merchantId=${b.id}" target="_blank">
-            <img src="${b.image}" alt="广告" />
-          </a>
-        `;
-        bottom.appendChild(slot);
-      });
-    }
+async function loadTopBanner() {
+  allBannerData = await fetchAllBannerData();
+  topBannerArr = allBannerData.filter(x => x.position === "1");
+  if (!topBannerArr.length) {
+    document.getElementById('banner-top').style.display = 'none';
+    return;
+  }
+  document.getElementById('banner-top').style.display = 'flex';
+  updateTopBanner();
+  topBannerTimer = setInterval(updateTopBanner, 5000);
+}
+
+function updateTopBanner() {
+  if (!topBannerArr.length) return;
+  const b = topBannerArr[topBannerIndex];
+  const cont = document.getElementById('banner-top');
+  
+  // 判断 type 是否为 "abs"，若是，使用 link 的绝对 URL
+  const bannerUrl = b.type === "abs" ? ensureAbsoluteUrl(b.link) : `./ads/pages/merchant.html?merchantId=${b.id}`;
+  
+  cont.innerHTML = `
+    <a href="${bannerUrl}" target="_blank">
+      <img src="${b.image}" alt="广告" style="height:100%;width:auto;"/>
+    </a>
+  `;
+  
+  topBannerIndex++;
+  if (topBannerIndex >= topBannerArr.length) topBannerIndex = 0;
+}
+
+// 加载底部 Banner (position>=2，但不等于 slider/popup)
+async function loadBottomBanners() {
+  const bottom = document.getElementById('banner-bottom');
+  bottom.innerHTML = "";
+  let bottomData = allBannerData.filter(x => {
+    return (x.position !== "1" && x.position !== "slider" && x.position !== "popup");
+  });
+  if (!bottomData.length) {
+    bottom.style.display = 'none';
+    return;
+  }
+  bottom.style.display = 'flex';
+  bottomData.forEach(b => {
+    let slot = document.createElement('div');
+    slot.className = "banner-slot";
+    
+    // 判断 type 是否为 "abs"，若是，使用 link 的绝对 URL
+    const bannerUrl = b.type === "abs" ? ensureAbsoluteUrl(b.link) : `./ads/pages/merchant.html?merchantId=${b.id}`;
+    
+    slot.innerHTML = `
+      <a href="${bannerUrl}" target="_blank">
+        <img src="${b.image}" alt="广告" />
+      </a>
+    `;
+    bottom.appendChild(slot);
+  });
+}
+
+// 加载中部滑动 Banner(position=slider)，添加图片+文字
+function loadSliderBanner() {
+  const sliderData = allBannerData.filter(x => x.position === "slider");
+  const container = document.getElementById('slider-banner-container');
+  container.innerHTML = "";
+  if (!sliderData.length) {
+    container.style.display = "none";
+    return;
+  }
+  container.style.display = "block";
+  sliderData.forEach(item => {
+    const div = document.createElement('div');
+    div.className = "slider-item";
+    
+    // 判断 type 是否为 "abs"，若是，使用 link 的绝对 URL
+    const bannerUrl = item.type === "abs" ? ensureAbsoluteUrl(item.link) : `./ads/pages/merchant.html?merchantId=${item.id}`;
+    
+    div.innerHTML = `
+      <a href="${bannerUrl}" target="_blank">
+        <img src="${item.image}" alt="slider广告" />
+        <div class="slider-text">${item.textJ || ""}</div>
+      </a>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// 加载弹窗广告(position=popup)，底部半圆形
+function loadPopupAd() {
+  const popupData = allBannerData.filter(x => x.position === "popup");
+  if (!popupData.length) return; // 无则不显示
+  const pd = popupData[0];
+  
+  // 判断 type 是否为 "abs"，若是，使用 link 的绝对 URL
+  const popupUrl = pd.type === "abs" ? ensureAbsoluteUrl(pd.link) : `./ads/pages/merchant.html?merchantId=${pd.id}`;
+  
+  // 设置内容
+  document.getElementById('popup-ad-img').src = pd.image;
+  document.getElementById('popup-ad-link')?.setAttribute('href', popupUrl);
+  document.getElementById('popup-ad-text').textContent = pd.textJ || "";
+  
+  // 1秒后显示
+  setTimeout(() => {
+    document.getElementById('popup-ad-mask').classList.add('show');
+  }, 1000);
+}
+
+// 关闭弹窗
+function closePopupAd() {
+  document.getElementById('popup-ad-mask').classList.remove('show');
+}
+
+// 确保 URL 是绝对 URL，若是相对 URL 则将其转换为绝对 URL
+function ensureAbsoluteUrl(url) {
+  // 如果 URL 已经是以 "http://" 或 "https://" 开头，则认为它是一个绝对 URL
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+  // 否则，假设是相对路径，拼接上站点的主 URL（例如 https://www.example.com）
+  const baseUrl = window.location.origin;  // 获取当前页面的主机部分（例如 https://www.example.com）
+  return baseUrl + url;
+}
 
 
 
-
-    // 加载中部滑动 Banner(position=slider)，添加图片+文字
-    function loadSliderBanner(){
-      const sliderData = allBannerData.filter(x=> x.position==="slider");
-      const container = document.getElementById('slider-banner-container');
-      container.innerHTML = "";
-      if(!sliderData.length) {
-        container.style.display="none";
-        return;
-      }
-      container.style.display="block";
-      sliderData.forEach(item=>{
-        const div = document.createElement('div');
-        div.className = "slider-item";
-        div.innerHTML = `
-          <a href="./ads/pages/merchant.html?merchantId=${item.id}" target="_blank">
-            <img src="${item.image}" alt="slider广告" />
-            <div class="slider-text">${item.textJ || ""}</div>
-          </a>
-        `;
-        container.appendChild(div);
-
-      });
-    }
-
-    // 加载弹窗广告(position=popup)，底部半圆形
-    function loadPopupAd(){
-      const popupData = allBannerData.filter(x=> x.position==="popup");
-      if(!popupData.length) return; // 无则不显示
-      // 简单取第一条
-      const pd = popupData[0];
-      // 设置内容
-      document.getElementById('popup-ad-img').src = pd.image;
-      document.getElementById('popup-ad-link')?.setAttribute('href', pd.link);
-      document.getElementById('popup-ad-text').textContent = pd.textJ || "";
-      // 1秒后显示
-      setTimeout(()=>{
-        document.getElementById('popup-ad-mask').classList.add('show');
-      },1000);
-    }
-    // 关闭弹窗
-    function closePopupAd(){
-      // 去掉 show 类名，过渡后再置为不可见
-      document.getElementById('popup-ad-mask').classList.remove('show');
-    }
 
     /**************************************************
      * [B] 原有系统信息表 & 全局状态
