@@ -824,11 +824,27 @@ img, iframe, .container, .content {
   let isDragging = false;
   let startX = 0;
   let scrollStart = 0;
-  let lastScrollLeft = 0.3;  // 用于计算惯性
-  let momentum = 3;        // 慯性计算（阻尼效果）
-  let inertiaFactor = 50; // 惯性系数，决定滑动的距离
-  let dampingFactor = 0.1; // 阻尼系数，决定滑动减缓的速度
+  let imageWidth = 300; // 假设每张图片宽度为300px
+let scrollDistance = 5 * imageWidth;  // 每次滑动滚动5张图的距离
 
+let lastScrollLeft = 0.2;  // 上一次滚动位置
+let momentum = 0;        // 当前的动量
+let inertiaFactor = 50;  // 惯性系数，设定较大的值以确保滚动足够远
+let dampingFactor = 0.1; // 阻尼系数，设定较小的值以保持较长的滑动时间
+
+
+// 计算滑动的惯性
+function updateScroll() {
+  let delta = lastScrollLeft - scrollPosition;  // 滚动位置变化的距离
+  momentum = delta * inertiaFactor;  // 计算当前的惯性，乘以惯性系数
+  lastScrollLeft = scrollPosition;  // 更新上一次滚动的位置
+}
+
+// 每次滑动时，使用惯性计算滚动
+function applyInertia() {
+  scrollPosition += momentum;
+  momentum *= dampingFactor; // 应用阻尼效果，让动量逐渐减小
+}
   // 开始拖拽
   slider.addEventListener('mousedown', (e) => {
     isDragging = true;
