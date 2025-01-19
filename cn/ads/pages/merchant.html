@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>商户详情</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 自定义样式：优化图片尺寸和响应式布局 */
+    .image-banner {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-container {
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 16px;
+      padding: 16px;
+      background-color: #fff;
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #333;
+    }
+
+    .section-text {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    .image-container {
+      display: block;
+      max-width: 100%;
+      border-radius: 12px;
+      margin: 0 auto;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .container {
+      padding: 0 16px;
+    }
+
+    .btn-back {
+      margin-bottom: 16px;
+      text-decoration: underline;
+      color: #1d4ed8;
+    }
+
+    @media (max-width: 640px) {
+      .section-container {
+        padding: 12px;
+      }
+      .section-title {
+        font-size: 1rem;
+      }
+      .section-text {
+        font-size: 0.875rem;
+      }
+    }
+  </style>
+</head>
+<body class="p-4 bg-gray-100">
+
+  <!-- 返回按钮 -->
+  <button class="btn-back" onclick="history.back()">返回上一级</button>
+
+  <div class="container">
+    <h1 id="merchant-title" class="text-2xl font-bold mb-4">商户详情</h1>
+    
+    <div id="merchant-content" class="space-y-4"></div>
+  </div>
+
+  <script>
+    const ROUTE_SHEET_ID = "1zddtUI5LO9sD99Ab2bJKZKOFFQQyBO7ezEKOjnoyg7U";
+    const API_KEY = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    const SHEET_NAME = "Sheet1";
+
+    // 从URL获取商户ID
+    const urlParams = new URLSearchParams(window.location.search);
+    const merchantId = urlParams.get("merchantId");
+
+    async function fetchRouteTable() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${ROUTE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data.values;
+    }
+
+    // 根据 merchantId 在路由表里找到对应的 SpreadId、API Key
+    function findMerchantRow(routeData, merchantId) {
+      const rows = routeData.slice(1);
+      return rows.find(row => row[0] === merchantId);
+    }
+
+    async function fetchMerchantInfo(spreadId, key) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadId}/values/Sheet1?key=${key}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.values;
+      } catch (error) {
+        console.error("fetchMerchantInfo error:", error);
+        return null;
+      }
+    }
+
+    /**
+     * 渲染商户页面：
+     * - 按商户信息表逐行渲染
+     * - 若C、D、E列为空则跳过对应行
+     */
+    function renderMerchantContent(merchantInfo) {
+      const merchantContent = document.getElementById("merchant-content");
+
+      // 第一个部分：商户 Banner
+      const bannerUrl = merchantInfo[1][4] || '';
+      if (bannerUrl) {
+        const banner = document.createElement("img");
+        banner.src = bannerUrl;
+        banner.alt = "商户 Banner";
+        banner.className = "image-banner mb-4";
+        merchantContent.appendChild(banner);
+      }
+
+      // 第二部分：商户名称
+      const name = merchantInfo[1][3] || "商户名称未提供";
+      const nameSection = document.createElement("div");
+      nameSection.className = "section-container";
+      const nameTitle = document.createElement("h3");
+      nameTitle.className = "section-title";
+      nameTitle.textContent = name;
+      nameSection.appendChild(nameTitle);
+      merchantContent.appendChild(nameSection);
+
+      // 第三部分：商户介绍
+      const introduction = merchantInfo[2][3] || "商户介绍未提供";
+      const introSection = document.createElement("div");
+      introSection.className = "section-container";
+      const introText = document.createElement("p");
+      introText.className = "section-text";
+      introText.textContent = introduction;
+      introSection.appendChild(introText);
+      merchantContent.appendChild(introSection);
+
+      // 第四部分：商户特点图片和描述
+      const featureImageUrl = merchantInfo[3][4] || '';
+      const featureText = merchantInfo[3][3] || "商户特点未提供";
+      if (featureImageUrl && featureText) {
+        const featureSection = document.createElement("div");
+        featureSection.className = "section-container";
+        const featureImage = document.createElement("img");
+        featureImage.src = featureImageUrl;
+        featureImage.alt = "商户特点图片";
+        featureImage.className = "image-container mb-2";
+        const featureDescription = document.createElement("p");
+        featureDescription.className = "section-text";
+        featureDescription.textContent = featureText;
+        featureSection.appendChild(featureImage);
+        featureSection.appendChild(featureDescription);
+        merchantContent.appendChild(featureSection);
+      }
+
+      // 第五部分及以后的内容：图片+文字纵向排列
+      for (let i = 4; i < merchantInfo.length; i++) {
+        const row = merchantInfo[i];
+        const imgUrl = row[4] || '';
+        const text = row[3] || '';
+        if (imgUrl && text) {
+          const section = document.createElement("div");
+          section.className = "section-container";
+          const img = document.createElement("img");
+          img.src = imgUrl;
+          img.alt = text;
+          img.className = "image-container mb-2";
+          const p = document.createElement("p");
+          p.className = "section-text";
+          p.textContent = text;
+          section.appendChild(img);
+          section.appendChild(p);
+          merchantContent.appendChild(section);
+        }
+      }
+    }
+
+    (async function main() {
+      const routeData = await fetchRouteTable();
+      const merchantRow = findMerchantRow(routeData, merchantId);
+      if (!merchantRow) {
+        alert("未找到该商户！");
+        return;
+      }
+
+      const merchantName = merchantRow[5];
+      const merchantSpreadId = merchantRow[6];
+      const merchantApiKey = merchantRow[7] || API_KEY;
+
+      document.getElementById("merchant-title").textContent = merchantName;
+
+      const merchantInfo = await fetchMerchantInfo(merchantSpreadId, merchantApiKey);
+
+      if (!merchantInfo) {
+        alert("获取商户信息失败");
+        return;
+      }
+
+      renderMerchantContent(merchantInfo);
+    })();
+  </script>
+</body>
+</html>

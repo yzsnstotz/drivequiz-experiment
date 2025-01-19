@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>商户子类</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-4">
+
+  <!-- 返回按钮 -->
+  <button 
+    class="mb-4 text-blue-500 underline" 
+    onclick="history.back()"
+  >
+    返回上一级
+  </button>
+
+  <h1 id="category-title" class="text-2xl font-bold mb-4"></h1>
+  <div id="subcategory-container" class="space-y-2"></div>
+
+  <script>
+    const ROUTE_SHEET_ID = "1zddtUI5LO9sD99Ab2bJKZKOFFQQyBO7ezEKOjnoyg7U";
+    const API_KEY = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    const SHEET_NAME = "Sheet1";
+
+    // 从 URL 中获取当前类别
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentCategory = urlParams.get("category");
+
+    async function fetchRouteTable() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${ROUTE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data.values;
+    }
+
+    function renderSubcategories(routeData) {
+      const rows = routeData.slice(1); // 去掉表头
+
+      // 筛选出当前类别对应的行
+      const filteredRows = rows.filter(row => row[3] === currentCategory);
+
+      // 根据 E 列（索引4）获取子类，并去重
+      const subcategories = filteredRows.map(row => row[4]);
+      const uniqueSubcategories = [...new Set(subcategories)];
+
+      // 渲染
+      const container = document.getElementById("subcategory-container");
+      uniqueSubcategories.forEach(subcat => {
+        const btn = document.createElement("button");
+        btn.textContent = subcat;
+        btn.className = "bg-green-500 text-white px-4 py-2 rounded";
+        btn.onclick = () => {
+          window.location.href = `./subcategory.html?category=${encodeURIComponent(currentCategory)}&subcategory=${encodeURIComponent(subcat)}`;
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    (async function main() {
+      document.getElementById("category-title").textContent = `商户大类: ${currentCategory}`;
+      const routeData = await fetchRouteTable();
+      renderSubcategories(routeData);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>子类商户列表</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-4">
+
+  <!-- 返回按钮 -->
+  <button 
+    class="mb-4 text-blue-500 underline" 
+    onclick="history.back()"
+  >
+    返回上一级
+  </button>
+
+  <h1 id="subcategory-title" class="text-2xl font-bold mb-4"></h1>
+  <div id="merchant-list" class="space-y-4"></div>
+
+  <script>
+    const ROUTE_SHEET_ID = "1zddtUI5LO9sD99Ab2bJKZKOFFQQyBO7ezEKOjnoyg7U";
+    const API_KEY = "AIzaSyApEcu1zgGEexoS_diT6PkCPQDWkX5Adhk";
+    const SHEET_NAME = "Sheet1";
+
+    // 获取URL参数
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentCategory = urlParams.get("category");
+    const currentSubcategory = urlParams.get("subcategory");
+
+    async function fetchRouteTable() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${ROUTE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data.values;
+    }
+
+    /**
+     * 获取商户信息：
+     * - 显示商家第一张图片 (商户信息表 E2 单元格)
+     * - 下方显示商家名称 (路由表 F 列) 及第一段介绍 (商户信息表 D3 单元格)
+     */
+    async function renderMerchants(routeData) {
+      const rows = routeData.slice(1); // 去掉表头
+      // 根据 D 列(索引3)和 E 列(索引4)过滤
+      const filteredRows = rows.filter(row => row[3] === currentCategory && row[4] === currentSubcategory);
+
+      const merchantList = document.getElementById("merchant-list");
+
+      for (const row of filteredRows) {
+        const merchantId = row[0];    // A 列: 商户 ID
+        const merchantName = row[5];  // F 列: 商户名称
+        const spreadId = row[6];      // G 列: 商户信息表 SpreadId
+        const merchantApiKey = row[7] || API_KEY; // H 列: 商户专属 API Key，如无则使用全局
+
+        // 先获取商户信息表数据
+        const merchantInfo = await fetchMerchantInfo(spreadId, merchantApiKey);
+        // E2单元格 => merchantInfo[1][4]
+        // D3单元格 => merchantInfo[2][3]
+
+        let merchantImage = "";
+        let merchantIntro = "";
+
+        if (merchantInfo && merchantInfo.length > 2) {
+          // merchantInfo[1] 是第二行, merchantInfo[2] 是第三行 (0索引)
+          merchantImage = (merchantInfo[1] && merchantInfo[1][4]) ? merchantInfo[1][4] : ""; 
+          merchantIntro = (merchantInfo[2] && merchantInfo[2][3]) ? merchantInfo[2][3] : "";
+        }
+
+        // 创建显示卡片
+        const card = document.createElement("div");
+        card.className = "border p-4 rounded shadow-sm";
+
+        // 商家图片
+        if (merchantImage) {
+          const img = document.createElement("img");
+          img.src = merchantImage;
+          img.alt = merchantName;
+          img.className = "w-full h-auto mb-2";
+          card.appendChild(img);
+        }
+
+        // 商家名称
+        const titleElem = document.createElement("h2");
+        titleElem.textContent = merchantName;
+        titleElem.className = "text-lg font-bold";
+        card.appendChild(titleElem);
+
+        // 简介
+        const introElem = document.createElement("p");
+        introElem.textContent = merchantIntro;
+        introElem.className = "text-sm text-gray-700";
+        card.appendChild(introElem);
+
+        // 点击跳转
+        card.onclick = () => {
+          // 跳转到 merchant.html 并携带 merchantId（A列）或其它必要信息
+          window.location.href = `./merchant.html?merchantId=${encodeURIComponent(merchantId)}`;
+        };
+
+        merchantList.appendChild(card);
+      }
+    }
+
+    // 获取某个商户的商户信息表
+    async function fetchMerchantInfo(spreadId, key) {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadId}/values/Sheet1?key=${key}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        return data.values; // 二维数组
+      } catch (error) {
+        console.error("fetchMerchantInfo error:", error);
+        return null;
+      }
+    }
+
+    (async function main() {
+      document.getElementById("subcategory-title").textContent = `子类: ${currentSubcategory}`;
+      const routeData = await fetchRouteTable();
+      await renderMerchants(routeData);
+    })();
+  </script>
+</body>
+</html>
