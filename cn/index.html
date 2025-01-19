@@ -131,7 +131,7 @@ img, iframe, .container, .content {
     #slider-banner-container {
       width: 100%;
       margin: 5px 0;
-      overflow-x: auto; /* 允许横向滚动 */
+      overflow-x: scroll; /* 允许横向滚动 */
       white-space: nowrap;
       box-sizing: border-box;
       border: 1px solid #eee;
@@ -141,6 +141,8 @@ img, iframe, .container, .content {
       gap: 10px; /* 项目间距 */
       scrollbar-width: none; /* Firefox 隐藏滚动条 */
       -ms-overflow-style: none; /* Internet Explorer 10+ 隐藏滚动条 */
+      scroll-snap-type: x mandatory;  /* 启用滚动对齐 */
+      -webkit-overflow-scrolling: touch; /* 对 iOS 设备优化触摸滚动 */
     }
 
     #slider-banner-container::-webkit-scrollbar {
@@ -156,6 +158,8 @@ img, iframe, .container, .content {
       box-shadow: 0 3px 6px rgba(0,0,0,0.1);
       background-color: #fff;
       text-align: center; /* 文字居中 */
+      scroll-snap-align: start;  /* 每个项目对齐到容器的开始 */
+      flex: 0 0 auto; /* 防止内容换行 */
     }
     .slider-item img {
       width: 100%;
@@ -893,19 +897,41 @@ function applyInertia() {
     }
   });
 
-  // 触控事件（保持一致的拖拽体验）
   slider.addEventListener('touchstart', (e) => {
-    startX = e.touches[0].pageX - slider.offsetLeft;
-    scrollStart = slider.scrollLeft;
-  });
+  startX = e.touches[0].pageX;
+  lastVelocity = 0;  // 重置速度
+  momentum = 0;      // 重置动量
+});
 
-  slider.addEventListener('touchmove', (e) => {
-    const x = e.touches[0].pageX - slider.offsetLeft;
-    const distance = (x - startX);
-    slider.scrollLeft = scrollStart - distance;
-  });
+slider.addEventListener('touchmove', (e) => {
+  const moveX = e.touches[0].pageX;
+  const deltaX = moveX - startX;  // 计算触摸滑动的距离
+  currentTranslateX -= deltaX;   // 根据滑动距离更新滑动窗口的位置
+  slider.style.transform = `translateX(${currentTranslateX}px)`;  // 应用transform
+
+  // 计算当前速度（滑动速度）
+  lastVelocity = deltaX;
+
+  // 更新 startX 以便计算下一次的滑动距离
+  startX = moveX;
+});
+
+slider.addEventListener('touchend', () => {
+  // 启动惯性滚动
+  momentum = lastVelocity;  // 使用最后的速度作为惯性起点
+  requestAnimationFrame(smoothScroll);  // 启动惯性滚动
+});
+
+function smoothScroll() {
+  if (Math.abs(momentum) > 0.1) {
+    // 使用惯性更新滑动位置
+    currentTranslateX += momentum * inertiaFactor;
+    slider.style.transform = `translateX(${currentTranslateX}px)`; // 更新 transform
+    momentum *= dampingFactor;  // 应用阻尼，逐渐减小惯性
+    requestAnimationFrame(smoothScroll);  // 继续惯性滑动
+  }
 }
-
+    }
 
 
 
