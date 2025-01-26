@@ -392,7 +392,14 @@ async function fetchCategoriesData(retryCount = 3, retryDelay = 1000) {
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/考题管理!A:G?key=${SYSTEM_API_KEY}`;
         const controller = new AbortController();
         const timeoutId = setTimeout(()=> controller.abort(), 10000);
-        const r = await fetch(url,{ signal: controller.signal });
+        const r = await fetch(url,{ 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json', 
+            'Origin': window.location.origin
+          }
+        });
         clearTimeout(timeoutId);
 
         if(!r.ok){
