@@ -186,10 +186,14 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 5) 加载广告
-    await loadTopBanner();
-    await loadPopupAds();
-    loadBottomBanners();
-    loadSliderBanner();
+    try {
+      await loadTopBanner();
+      await loadPopupAds();
+      await loadBottomBanners();
+      await loadSliderBanner();
+    } catch (error) {
+      console.error('加载广告资源失败:', error);
+    }
 
     // 6) 获取用户IP写log(演示省略具体提交)
     // await getClientIPAndLogAccess();
@@ -328,6 +332,7 @@ function switchTab(tab){
   });
 
   hideAll(); // 避免页面串
+  document.getElementById('summary-container').style.display='none'; // 确保做题历史容器被隐藏
 
   if(tab==='home'){
     document.querySelectorAll('.tabbar-item')[0].classList.add('active');
@@ -1078,14 +1083,18 @@ function showBattleIntroPopup(){
  * @returns {Promise<Array>} Array of questions
  */
 async function loadBattleQuestions() {
+  // First log the initial state
+  console.log('=== 开始加载大乱斗题库 ===');
+  
   const zhCategories = categoriesData.filter(x => x.lang === "ZH");
   let allQuestions = [];
+  let needsUpdate = false;
   
-  // First, attempt to load all questions from quizTest
-  console.log('开始检查本地题库...');
+  // Check local storage first
   for (const category of zhCategories) {
       const localData = await localDataManager.getQuizData('ZH', category.internalCode);
       if (localData && localData.length) {
+          console.log(`本地已有题库: ${category.sheetName}, 数量: ${localData.length}`);
           allQuestions.push(...localData.map(q => ({
               ...q,
               spreadId: category.spreadId,
@@ -1093,12 +1102,16 @@ async function loadBattleQuestions() {
               sheetName: category.sheetName,
               internalCode: category.internalCode
           })));
+      } else {
+          console.log(`需要下载题库: ${category.sheetName}`);
+          needsUpdate = true;
       }
   }
 
-  // If we need to fetch questions from server
-  if (allQuestions.length < 100) {
-      console.log('本地题目不足，开始在线获取...');
+  // If any category is missing or we need to update
+  if (needsUpdate || allQuestions.length < 100) {
+      console.log('开始在线更新题库...');
+      
       for (const category of zhCategories) {
           try {
               const url = `https://sheets.googleapis.com/v4/spreadsheets/${category.spreadId}/values/${encodeURIComponent(category.sheetName)}?key=${category.apiKey}`;
@@ -1108,8 +1121,6 @@ async function loadBattleQuestions() {
                   const data = await response.json();
                   if (data.values && data.values.length > 0) {
                       const processedQuestions = processSheetData(data.values);
-                      
-                      // Add metadata to questions
                       const questionsWithMetadata = processedQuestions.map(q => ({
                           ...q,
                           spreadId: category.spreadId,
@@ -1118,21 +1129,22 @@ async function loadBattleQuestions() {
                           internalCode: category.internalCode
                       }));
 
-                      // Save to quizTest immediately
+                      // Save to IndexedDB
                       await localDataManager.saveQuizData('ZH', category.internalCode, questionsWithMetadata);
+                      console.log(`已更新题库: ${category.sheetName}, 题目数: ${questionsWithMetadata.length}`);
                       
-                      // Add to our current batch
+                      // Update our current collection
+                      allQuestions = allQuestions.filter(q => q.internalCode !== category.internalCode);
                       allQuestions.push(...questionsWithMetadata);
-                      console.log(`已加载题库: ${category.sheetName}, 题目数: ${processedQuestions.length}`);
                   }
               }
           } catch (error) {
-              console.error(`加载题库失败: ${category.sheetName}`, error);
+              console.error(`更新题库失败: ${category.sheetName}`, error);
           }
       }
   }
 
-  console.log(`题库加载完成，总题目数: ${allQuestions.length}`);
+  console.log(`题库准备完成，总题目数: ${allQuestions.length}`);
   return allQuestions;
 }
 
@@ -1144,17 +1156,21 @@ async function preloadQuestionImage(question) {
   if (!question.image) return;
 
   try {
-      // Check if image is already in local storage
+      // Always check local storage first
       const hasLocal = await localDataManager.hasLocalImage(question.image);
+      console.log(`图片缓存检查: ${question.image}, 本地${hasLocal ? '已有' : '没有'}`);
+      
       if (!hasLocal) {
-          // Download and cache if not present
+          // Only download if not in local storage
           await localDataManager.downloadAndCacheImage(question.image);
+          console.log(`图片已下载: ${question.image}`);
       }
       
       battleImageLoadingProgress.loaded++;
+      console.log(`图片加载进度: ${battleImageLoadingProgress.loaded}/${battleImageLoadingProgress.total}`);
       updateBattleLoadingProgress();
   } catch (e) {
-      console.warn(`Failed to preload image for question:`, e);
+      console.warn(`图片预加载失败: ${question.image}`, e);
   }
 }
 
@@ -2303,77 +2319,21 @@ async function checkLocalVersion(){
   }
 }
 
-async function checkAndUpdate(){
-  const updateBtn= document.getElementById('update-btn');
-  if(!updateBtn) return;
-  if(updateBtn.dataset.status==='updating'){
-    console.log('更新中...');
-    return;
-  }
-  function updateStatus(st, txt){
-    updateBtn.dataset.status= st;
-    let t= updateBtn.querySelector('.update-text');
-    if(t) t.textContent= txt;
-  }
-  updateStatus('updating','更新中...');
-  let tout= setTimeout(()=>{
-    if(updateBtn.dataset.status==='updating'){
-      updateStatus('needUpdate','更新超时');
-      localDataManager.updateStatus='needUpdate';
-      console.error('更新超时');
-    }
-  },300000);
-
-//   try{
-//     const url= `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!C:D?key=${SYSTEM_API_KEY}`;
-//     const resp= await fetch(url);
-//     if(!resp.ok) throw new Error(`获取系统表数据失败:${resp.status}`);
-//     let dd= await resp.json();
-//     let imageData= dd.values? dd.values.slice(1).map(row=>({
-//       url:row[0],
-//       type: row[1]||'quiz'
-//     })).filter(i=> i.url && i.url.trim()!==''): [];
-//     let result= await localDataManager.updateFromSystemSheet(imageData);
-
-//     const localVerSpan= document.getElementById('local-version');
-//     if(localVerSpan) localVerSpan.textContent= result.version;
-//     if(result.failedCount>0){
-//       console.warn(`${result.failedCount}个图片下载失败`);
-//     }
-//     updateStatus('latest','最新');
-//   }catch(e){
-//     console.error('更新失败:', e);
-//     updateStatus('needUpdate','更新失败');
-//   }finally{
-//     clearTimeout(tout);
-//   }
-// }
-try {
-  // 1. First fetch system sheet data for images
-  const systemUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!C:D?key=${SYSTEM_API_KEY}`;
-  const systemResp = await fetch(systemUrl);
-  if (!systemResp.ok) throw new Error(`获取系统表数据失败:${systemResp.status}`);
+async function fetchRemoteCategories() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/考题管理!A:G?key=${SYSTEM_API_KEY}`;
+  const response = await fetch(url);
   
-  const systemData = await systemResp.json();
-  const imageData = systemData.values ? systemData.values.slice(1)
-    .map(row => ({
-      url: row[0],
-      type: row[1] || 'quiz'
-    }))
-    .filter(i => i.url && i.url.trim() !== '') : [];
-
-  // 2. Fetch categories data for quiz content
-  const categoriesUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/考题管理!A:G?key=${SYSTEM_API_KEY}`;
-  const catResp = await fetch(categoriesUrl);
-  if (!catResp.ok) throw new Error(`获取考题分类数据失败: ${catResp.status}`);
-  
-  const catData = await catResp.json();
-  if (!catData.values || catData.values.length < 2) {
-    throw new Error("考题管理Sheet数据为空或格式不正确");
+  if (!response.ok) {
+      throw new Error(`获取考题管理数据失败: ${response.status}`);
   }
-
-  const categories = catData.values.slice(1)
-    .map(row => ({
+  
+  const data = await response.json();
+  if (!data.values || data.values.length < 2) {
+      throw new Error("考题管理Sheet数据为空或格式不正确");
+  }
+  
+  const rows = data.values.slice(1);
+  return rows.map(row => ({
       internalName: (row[0] || "").trim(),
       lang: (row[1] || "").trim(),
       categoryName: (row[2] || "").trim(),
@@ -2381,60 +2341,128 @@ try {
       spreadId: (row[4] || "").trim(),
       apiKey: (row[5] || "").trim(),
       internalCode: (row[6] || "").trim()
-    }))
-    .filter(x => x.categoryName && x.sheetName && x.spreadId && x.apiKey);
-
-  // 3. Fetch and store quiz content for all Chinese categories
-  const zhCategories = categories.filter(x => x.lang === "ZH");
-  let quizUpdateErrors = [];
-  
-  for (const cat of zhCategories) {
-    try {
-      const quizUrl = `https://sheets.googleapis.com/v4/spreadsheets/${cat.spreadId}/values/${encodeURIComponent(cat.sheetName)}?key=${cat.apiKey}`;
-      const quizResp = await fetch(quizUrl);
-      if (quizResp.ok) {
-        const quizData = await quizResp.json();
-        if (quizData.values && quizData.values.length > 0) {
-          const processedQuestions = processSheetData(quizData.values);
-          // Save to IndexedDB
-          await localDataManager.saveQuizData('ZH', cat.internalCode, processedQuestions);
-        }
-      } else {
-        quizUpdateErrors.push(`${cat.sheetName}: HTTP ${quizResp.status}`);
-      }
-    } catch (e) {
-      quizUpdateErrors.push(`${cat.sheetName}: ${e.message}`);
-    }
-  }
-
-  // 4. Update images using existing functionality
-  const result = await localDataManager.updateFromSystemSheet(imageData);
-
-  // 5. Update UI and handle results
-  const localVerSpan = document.getElementById('local-version');
-  if (localVerSpan) localVerSpan.textContent = result.version;
-
-  let statusMessage = '';
-  if (result.failedCount > 0) {
-    statusMessage += `${result.failedCount}个图片下载失败`;
-  }
-  if (quizUpdateErrors.length > 0) {
-    statusMessage += (statusMessage ? ', ' : '') + `${quizUpdateErrors.length}个题库更新失败`;
-  }
-
-  updateStatus('latest', statusMessage || '最新');
-  
-  // If there were any errors, log them for debugging
-  if (quizUpdateErrors.length > 0) {
-    console.warn('题库更新错误:', quizUpdateErrors);
-  }
-
-} catch (e) {
-  console.error('更新失败:', e);
-  updateStatus('needUpdate', '更新失败');
-} finally {
-  clearTimeout(tout);
+  })).filter(x => x.categoryName && x.sheetName && x.spreadId && x.apiKey);
 }
+
+async function checkAndUpdate() {
+  const updateBtn = document.getElementById('update-btn');
+  if (!updateBtn || updateBtn.dataset.status === 'updating') return;
+
+  function updateStatus(st, txt) {
+      updateBtn.dataset.status = st;
+      let t = updateBtn.querySelector('.update-text');
+      if (t) t.textContent = txt;
+  }
+
+  updateStatus('updating', '更新中...');
+  let tout = setTimeout(() => {
+      if (updateBtn.dataset.status === 'updating') {
+          updateStatus('needUpdate', '更新超时');
+          localDataManager.updateStatus = 'needUpdate';
+      }
+  }, 300000);
+
+  try {
+      // Fetch remote data information
+      const [imageUrls, categories] = await Promise.all([
+          fetchRemoteImageData(),
+          fetchRemoteCategories()
+      ]);
+
+      console.log('=== 开始检查本地数据状态 ===');
+
+      // Check quiz content
+      const zhCategories = categories.filter(x => x.lang === "ZH");
+      const quizUpdateNeeded = [];
+
+      for (const cat of zhCategories) {
+          const localData = await localDataManager.getQuizData('ZH', cat.internalCode);
+          if (!localData || !localData.length) {
+              console.log(`题库需要更新: ${cat.sheetName}`);
+              quizUpdateNeeded.push(cat);
+          } else {
+              console.log(`题库已存在: ${cat.sheetName} (${localData.length}题)`);
+          }
+      }
+
+      // Check images
+      const localImages = await checkLocalImages(imageUrls);
+      const missingImages = imageUrls.filter(img => !localImages.includes(img.url));
+      console.log(`需要下载的图片数量: ${missingImages.length}`);
+
+      // Update missing content
+      const errors = [];
+      if (quizUpdateNeeded.length > 0) {
+          for (const cat of quizUpdateNeeded) {
+              try {
+                  await updateQuizData(cat);
+              } catch (e) {
+                  errors.push(`题库[${cat.sheetName}]: ${e.message}`);
+              }
+          }
+      }
+
+      if (missingImages.length > 0) {
+          const result = await localDataManager.updateFromSystemSheet(imageUrls);
+          if (result.failedCount > 0) {
+              errors.push(`${result.failedCount}个图片下载失败`);
+          }
+          // 更新UI显示版本号
+          const localVerSpan = document.getElementById('local-version');
+          if (localVerSpan) localVerSpan.textContent = result.version;
+      } else {
+          // 如果没有需要更新的图片，仍然需要生成新版本号
+          const newVersion = await localDataManager.generateVersion(imageUrls.map(i => i.url));
+          localDataManager.saveLocalVersion(newVersion);
+          const localVerSpan = document.getElementById('local-version');
+          if (localVerSpan) localVerSpan.textContent = newVersion;
+      }
+      
+      updateStatus('latest', errors.length > 0 ? errors.join(', ') : '最新');
+
+  } catch (e) {
+      console.error('更新失败:', e);
+      updateStatus('needUpdate', '更新失败');
+  } finally {
+      clearTimeout(tout);
+  }
+}
+
+async function fetchRemoteImageData() {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!C:D?key=${SYSTEM_API_KEY}`;
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`获取系统表数据失败:${response.status}`);
+  
+  const data = await response.json();
+  return data.values ? data.values.slice(1)
+      .map(row => ({
+          url: row[0],
+          type: row[1] || 'quiz'
+      }))
+      .filter(i => i.url && i.url.trim() !== '') : [];
+}
+
+async function checkLocalImages(remoteUrls) {
+  const localUrls = [];
+  for (const img of remoteUrls) {
+      const hasLocal = await localDataManager.hasLocalImage(img.url, img.type);
+      if (hasLocal) localUrls.push(img.url);
+  }
+  return localUrls;
+}
+
+async function updateQuizData(category) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${category.spreadId}/values/${encodeURIComponent(category.sheetName)}?key=${category.apiKey}`;
+  const response = await fetch(url);
+  
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  
+  const data = await response.json();
+  if (data.values && data.values.length > 0) {
+      const questions = processSheetData(data.values);
+      await localDataManager.saveQuizData('ZH', category.internalCode, questions);
+      console.log(`题库[${category.sheetName}]更新完成: ${questions.length}题`);
+  }
 }
 
 
@@ -2450,6 +2478,7 @@ try {
 // ==================================================
 class LocalDataManager {
   constructor(){
+    this.dbPromise = null;
     this.versionKey='localImagesVersion';
     this.updateStatus='latest';
     this.dbName='zalemCache';
@@ -2461,35 +2490,54 @@ class LocalDataManager {
     this.db=null;
     this.initDB();
   }
-  async initDB(){
-    if(this.db) return;
-    return new Promise((resolve, reject)=>{
-      let req= indexedDB.open(this.dbName,1);
-      req.onerror= e=>{
-        console.error('数据库打开失败:', e.target.error);
-        reject(e.target.error);
+
+  async ensureDbReady() {
+    if (!this.dbPromise) {
+        this.dbPromise = this.initDB();
+    }
+    this.db = await this.dbPromise;
+    return this.db;
+}
+
+
+async initDB() {
+  return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, 1);
+      
+      request.onerror = (event) => {
+          console.error('数据库打开失败:', event.target.error);
+          reject(event.target.error);
       };
-      req.onsuccess= e=>{
-        this.db= e.target.result;
-        resolve();
+      
+      request.onsuccess = (event) => {
+          const db = event.target.result;
+          
+          // Add error handler for the database
+          db.onerror = (event) => {
+              console.error('数据库错误:', event.target.error);
+          };
+          
+          resolve(db);
       };
-      req.onupgradeneeded= e=>{
-        let db= e.target.result;
-        if(!db.objectStoreNames.contains(this.stores.quizImages)){
-          db.createObjectStore(this.stores.quizImages,{keyPath:'url'});
-        }
-        if(!db.objectStoreNames.contains(this.stores.bannerImages)){
-          db.createObjectStore(this.stores.bannerImages,{keyPath:'url'});
-        }
-        if(!db.objectStoreNames.contains(this.stores.quizTest)){
-          db.createObjectStore(this.stores.quizTest,{keyPath:'id'});
-        }
+      
+      request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          
+          // Create stores if they don't exist
+          if (!db.objectStoreNames.contains(this.stores.quizImages)) {
+              db.createObjectStore(this.stores.quizImages, { keyPath: 'url' });
+          }
+          if (!db.objectStoreNames.contains(this.stores.bannerImages)) {
+              db.createObjectStore(this.stores.bannerImages, { keyPath: 'url' });
+          }
+          if (!db.objectStoreNames.contains(this.stores.quizTest)) {
+              db.createObjectStore(this.stores.quizTest, { keyPath: 'id' });
+          }
       };
-    });
+  });
   }
-  async ensureDbReady(){
-    if(!this.db) await this.initDB();
-  }
+
+
   getLocalVersion(){
     return localStorage.getItem(this.versionKey)||'';
   }
@@ -2637,64 +2685,71 @@ class LocalDataManager {
   }
   async updateFromSystemSheet(imageUrls) {
     if (this.updateStatus === 'updating') {
-      console.log('更新进行中...');
-      return { version: this.getLocalVersion(), failedCount: 0 };
+        console.log('更新进行中...');
+        return { version: this.getLocalVersion(), failedCount: 0 };
     }
+    
     this.updateStatus = 'updating';
     await this.ensureDbReady();
 
-    // Handle image updates
-    let checks = await Promise.all(imageUrls.map(async it => {
-      let has = await this.hasLocalImage(it.url, it.type);
-      return { url: it.url, type: it.type, needsDownload: !has };
-    }));
-    let newOnes = checks.filter(x => x.needsDownload);
-    let failedCount = 0;
-    for (const item of newOnes) {
-      let ok = await this.downloadAndCacheImage(item.url, item.type);
-      if (!ok) failedCount++;
+    try {
+        // Handle image updates
+        let checks = await Promise.all(imageUrls.map(async it => {
+            let has = await this.hasLocalImage(it.url, it.type);
+            return { url: it.url, type: it.type, needsDownload: !has };
+        }));
+        
+        let newOnes = checks.filter(x => x.needsDownload);
+        let failedCount = 0;
+        
+        for (const item of newOnes) {
+            let ok = await this.downloadAndCacheImage(item.url, item.type);
+            if (!ok) failedCount++;
+        }
+
+        // 清理未使用的图片
+        if (this.db) {
+            const neededUrls = new Set(imageUrls.map(i => i.url));
+            let tq = this.db.transaction(this.stores.quizImages, 'readwrite');
+            let tb = this.db.transaction(this.stores.bannerImages, 'readwrite');
+            let sq = tq.objectStore(this.stores.quizImages);
+            let sb = tb.objectStore(this.stores.bannerImages);
+            
+            let rq1 = sq.getAllKeys();
+            let rq2 = sb.getAllKeys();
+            
+            rq1.onsuccess = () => {
+                let keys = rq1.result || [];
+                keys.forEach(url => {
+                    if (!neededUrls.has(url)) {
+                        sq.delete(url);
+                    }
+                });
+            };
+            
+            rq2.onsuccess = () => {
+                let keys = rq2.result || [];
+                keys.forEach(url => {
+                    if (!neededUrls.has(url)) {
+                        sb.delete(url);
+                    }
+                });
+            };
+        }
+
+        // 生成新版本号
+        let newVersion = await this.generateVersion(imageUrls.map(i => i.url));
+        this.saveLocalVersion(newVersion);
+        this.updateStatus = 'latest';
+        
+        return { version: newVersion, failedCount };
+    } catch (error) {
+        this.updateStatus = 'needUpdate';
+        throw error;
     }
+}
 
-    // Clean up unused images
-    if (this.db) {
-      const neededUrls = new Set(imageUrls.map(i => i.url));
-      let tq = this.db.transaction(this.stores.quizImages, 'readwrite');
-      let tb = this.db.transaction(this.stores.bannerImages, 'readwrite');
-      let sq = tq.objectStore(this.stores.quizImages);
-      let sb = tb.objectStore(this.stores.bannerImages);
-      
-      let rq1 = sq.getAllKeys();
-      let rq2 = sb.getAllKeys();
-      
-      rq1.onsuccess = () => {
-        let keys = rq1.result || [];
-        keys.forEach(url => {
-          if (!neededUrls.has(url)) {
-            sq.delete(url);
-          }
-        });
-      };
-      
-      rq2.onsuccess = () => {
-        let keys = rq2.result || [];
-        keys.forEach(url => {
-          if (!neededUrls.has(url)) {
-            sb.delete(url);
-          }
-        });
-      };
-    }
-
-    // Generate new version including quiz data state
-    let newVersion = await this.generateVersion(imageUrls.map(i => i.url));
-    this.saveLocalVersion(newVersion);
-    this.updateStatus = 'latest';
-    
-    return { version: newVersion, failedCount };
-
-
-    
-  }
+  
   async generateVersion(imageUrls = []) {
     await this.ensureDbReady();
     
