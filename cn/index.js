@@ -2303,16 +2303,23 @@ async function checkLocalVersion(){
     const localVersionSpan= document.getElementById('local-version');
     const remoteVersionSpan= document.getElementById('remote-version');
     if(!updateBtn|| !localVersionSpan|| !remoteVersionSpan) return;
+    
+    // 获取远程版本
     const url= `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!B6:B7?key=${SYSTEM_API_KEY}`;
     const r= await fetch(url);
     if(!r.ok) throw new Error(`获取版本信息失败: ${r.status}`);
     let d= await r.json();
     const remoteVersion= d.values&&d.values[0]? d.values[0][0]: '未知';
     const serverVersion= d.values&&d.values[1]? d.values[1][0]: '未知';
-    const localVersion= localDataManager.getLocalVersion()||'';
+    
+    // 重新生成本地版本号，确保反映最新的本地内容状态
+    const localVersion = await localDataManager.generateVersion();
+    localDataManager.saveLocalVersion(localVersion);
+    
     localVersionSpan.textContent= localVersion;
     remoteVersionSpan.textContent= `${remoteVersion||'-'} (服务端:${serverVersion})`;
-    if(localVersion=== remoteVersion){
+    
+    if(localVersion === remoteVersion){
       updateBtn.dataset.status='latest';
       let tx= updateBtn.querySelector('.update-text');
       if(tx) tx.textContent='最新';
@@ -2780,7 +2787,21 @@ async initDB() {
     // Include both image URLs and quiz data in version hash
     let contentParts = [
       imageUrls.sort().join(','),
-      quizData.filter(d => d).map(d => `${d.id}:${d.timestamp}`).sort().join(',')
+      quizData.filter(d => d).map(d => {
+        // 包含题目内容的详细信息
+        const questions = d.questions || [];
+        const questionHashes = questions.map(q => {
+          const parts = [
+            q.question,
+            q.answer,
+            (q.options || []).join('|'),
+            q.image || '',
+            q.explanation || ''
+          ];
+          return parts.join('::');
+        }).sort();
+        return `${d.id}:${questionHashes.join('|')}`;
+      }).sort().join(',')
     ];
     
     let contentString = contentParts.join('|');
