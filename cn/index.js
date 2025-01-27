@@ -1670,6 +1670,106 @@ async function startMistakeQuiz() {
 }
 
 /**
+ * Loads questions for battle mode with optimized local-first strategy
+ * @returns {Promise<Array>} Array of battle mode questions
+ */
+async function loadBattleQuestions() {
+    console.log('=== 开始加载大乱斗题库 ===');
+    
+    // Get all Chinese categories from categoriesData
+    const zhCategories = categoriesData.filter(x => x.lang === "ZH");
+    if (!zhCategories.length) {
+        throw new Error('无法找到中文题库配置');
+    }
+
+    let allQuestions = [];
+    let needsUpdate = false;
+
+    // First try loading from local storage
+    for (const category of zhCategories) {
+        try {
+            const localData = await localDataManager.getQuizData('ZH', category.internalCode);
+            if (localData && localData.length) {
+                console.log(`本地已有题库: ${category.sheetName}, 数量: ${localData.length}`);
+                // Add metadata to questions
+                const questionsWithMetadata = localData.map(q => ({
+                    ...q,
+                    spreadId: category.spreadId,
+                    apiKey: category.apiKey,
+                    sheetName: category.sheetName,
+                    internalCode: category.internalCode
+                }));
+                allQuestions.push(...questionsWithMetadata);
+            } else {
+                console.log(`需要下载题库: ${category.sheetName}`);
+                needsUpdate = true;
+            }
+        } catch (error) {
+            console.warn(`检查本地题库失败: ${category.sheetName}`, error);
+            needsUpdate = true;
+        }
+    }
+
+    // If we have enough local questions and don't need updates, return them
+    if (allQuestions.length >= 100 && !needsUpdate) {
+        console.log(`使用本地题库，总题目数: ${allQuestions.length}`);
+        return allQuestions;
+    }
+
+    // Otherwise, fetch from server
+    console.log('开始在线更新题库...');
+    for (const category of zhCategories) {
+        try {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${category.spreadId}/values/${encodeURIComponent(category.sheetName)}?key=${category.apiKey}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            if (data.values && data.values.length > 0) {
+                const processedQuestions = processSheetData(data.values);
+                const questionsWithMetadata = processedQuestions.map(q => ({
+                    ...q,
+                    spreadId: category.spreadId,
+                    apiKey: category.apiKey,
+                    sheetName: category.sheetName,
+                    internalCode: category.internalCode
+                }));
+
+                // Save to local storage
+                await localDataManager.saveQuizData('ZH', category.internalCode, questionsWithMetadata);
+                console.log(`已更新题库: ${category.sheetName}, 题目数: ${questionsWithMetadata.length}`);
+
+                // Update our current collection
+                allQuestions = allQuestions.filter(q => q.internalCode !== category.internalCode);
+                allQuestions.push(...questionsWithMetadata);
+
+                // Start preloading images in background
+                for (const question of questionsWithMetadata) {
+                    if (question.image) {
+                        localDataManager.downloadAndCacheImage(question.image).catch(error => {
+                            console.warn(`预加载图片失败: ${question.image}`, error);
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error(`更新题库失败: ${category.sheetName}`, error);
+        }
+    }
+
+    // If we still don't have enough questions after trying online
+    if (allQuestions.length === 0) {
+        throw new Error('无法获取任何题目');
+    }
+
+    console.log(`题库准备完成，总题目数: ${allQuestions.length}`);
+    return allQuestions;
+}
+
+/**
  * Preload a single question's image
  * @param {Object} question Question object containing image URL
  */
