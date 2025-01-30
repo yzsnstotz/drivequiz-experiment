@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5561937816024308"
-     crossorigin="anonymous"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zalem - 多语言选择</title>
@@ -67,6 +65,20 @@
     }
     .language-btn.cn {
       background: linear-gradient(145deg, #4caf50, #388e3c);
+      position: relative;
+    }
+    .language-btn.cn::after {
+      content: 'Beta';
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      background: #ff4081;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .language-btn.en {
       background: linear-gradient(145deg, #2196f3, #1976d2);
@@ -103,7 +115,7 @@
   // 自动识别路径并记录语言属性
   const languageMap = {
     '/jp': 'Japanese',
-    '/cn/beta': 'Chinese',
+    '/cn': 'Chinese',
     '/en': 'English',
     '/vn': 'Vietnamese',
     '/kr': 'Korean'
@@ -123,6 +135,7 @@
     'value': 1
   });
 </script>
+
 </head>
 <body>
   <div class="container">
@@ -131,7 +144,7 @@
     <div class="language-buttons">
       <!-- 添加点击事件统计 -->
       <a href="/jp" class="language-btn jp" onclick="trackLanguageSelection('Japanese')">日本語</a>
-      <a href="/cn" class="language-btn cn" onclick="trackLanguageSelection('Chinese')">中文</a>
+      <a href="/cn/beta" class="language-btn cn" onclick="trackLanguageSelection('Chinese')">中文</a>
       <a href="/en" class="language-btn en" onclick="trackLanguageSelection('English')">English</a>
       <a href="/vn" class="language-btn vn" onclick="trackLanguageSelection('Vietnamese')">Tiếng Việt</a>
       <a href="/kr" class="language-btn kr" onclick="trackLanguageSelection('Korean')">한국어</a>
