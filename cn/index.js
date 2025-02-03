@@ -80,11 +80,63 @@ window.quizApp = {};
 // ==================================================
 // 启动页面控制
 // ==================================================
-document.addEventListener('DOMContentLoaded', function() {
+/**
+ * 并发预加载首页关键数据，在Splash显示期间进行
+ * 这样进入首页后就不需要再花大量时间加载
+ */
+async function preloadEssentialData() {
+  try {
+    // 1) 并发加载分类数据 + 广告数据 + 数据库初始化
+    //    这里要与原本首页 onload 里做的事情保持一致
+    const startTime = performance.now();
+
+    await localDataManager.initDB(); // 确保IndexedDB可用
+
+    const [cats, banners] = await Promise.all([
+      fetchCategoriesData(), // 加载题库分类
+      fetchAllBannerData()   // 加载所有广告banner信息
+    ]);
+
+    // 2) 存到全局: categoriesData 和 allBannerData 在fetchXXX里已有
+    //    banners结果已经放到allBannerData中
+
+    // 3) 后台再去下载一些关键图片(如top banner等)
+    if (allBannerData && allBannerData.length) {
+      // 并行下载Top Banner可能需要的图片
+      const top = allBannerData.filter(x => x.position === "1");
+      if (top.length) {
+        // 只并行下载前2~3条即可，以免阻塞
+        const tasks = top.slice(0, 3).map(b => {
+          if (b.image) {
+            return localDataManager.downloadAndCacheImage(b.image, 'banner');
+          }
+          return Promise.resolve();
+        });
+        await Promise.all(tasks);
+      }
+    }
+
+    // 如果您还需要 preload “slider banner”里的图片，也可在这里做同样操作
+
+    const endTime = performance.now();
+    console.log(`预加载关键数据完成，耗时：${((endTime - startTime)/1000).toFixed(2)}秒`);
+  } catch (error) {
+    console.error('preloadEssentialData 出错:', error);
+  }
+}
+
+
+
+document.addEventListener('DOMContentLoaded', async function() {
   const splashScreen = document.getElementById('splash-screen');
   const mainContent = document.getElementById('main-content');
 
-  // 显示启动页面5秒
+  // 立刻并行预加载关键数据
+  preloadEssentialData().catch(e => {
+    console.warn('预加载关键数据出错:', e);
+  });
+
+  // 显示启动页面5秒（或可调更短）
   setTimeout(() => {
     // 添加淡出动画类
     splashScreen.classList.add('fade-out');
@@ -94,8 +146,9 @@ document.addEventListener('DOMContentLoaded', function() {
       splashScreen.style.display = 'none';
       mainContent.style.display = 'block';
     }, 500); // 500ms是淡出动画的持续时间
-  }, 5000); // 5000ms = 5秒
+  }, 5000); // 5秒
 });
+
 
 // ==================================================
 // 0. iOS风格弹窗/确认弹窗
@@ -3681,10 +3734,23 @@ async function checkAndUpdate() {
   const updateBtn = document.getElementById('update-btn');
   if (!updateBtn || updateBtn.dataset.status === 'updating') return;
 
+  // 找到进度条UI(假设我们在 personal-center-container 里有一个 id="update-progress-bar" 的进度条)
+  const progressBar = document.getElementById('update-progress-bar');
+  const progressBarText = document.getElementById('update-progress-text'); // 显示数字或提示
+
   function updateStatus(st, txt) {
     updateBtn.dataset.status = st;
     let t = updateBtn.querySelector('.update-text');
     if (t) t.textContent = txt;
+  }
+
+  // 初始化进度条
+  if (progressBar) {
+    progressBar.style.width = '0%';
+    progressBar.style.backgroundColor = '#007aff'; // 蓝色
+  }
+  if (progressBarText) {
+    progressBarText.textContent = '0%';
   }
 
   updateStatus('updating', '更新中...');
@@ -3696,15 +3762,13 @@ async function checkAndUpdate() {
   }, 300000); // 5分钟超时
 
   try {
-    // 1) 获取远程的图片列表、题库列表
+    // 1) 获取远程数据
     const [imageUrls, categories] = await Promise.all([
       fetchRemoteImageData(),
       fetchRemoteCategories()
     ]);
 
-    console.log('=== 开始检查并更新本地数据 ===');
-
-    // 2) 找出本地没保存的题库
+    // 2) 找出需要更新的题库
     const zhCategories = categories.filter(x => x.lang === "ZH");
     const quizUpdateNeeded = [];
     for (const cat of zhCategories) {
@@ -3726,30 +3790,48 @@ async function checkAndUpdate() {
       }
     }
 
-    // 4) 更新缺失的图片
-    //   先检查哪些已下载
+    // 4) 检查需更新的图片
     const localImages = await checkLocalImages(imageUrls);
     const missingImages = imageUrls.filter(img => !localImages.includes(img.url));
-    if (missingImages.length > 0) {
-      const result = await localDataManager.updateFromSystemSheet(imageUrls);
-      if (result.failedCount > 0) {
-        errors.push(`${result.failedCount}个图片下载失败`);
+
+    // 定义一个函数更新进度条
+    let totalImages = missingImages.length;
+    let lastPercent = 0;
+
+    function onImageProgress(loadedCount, totalCount) {
+      if (!progressBar) return;
+      const pct = totalCount > 0 ? Math.round((loadedCount / totalCount) * 100) : 100;
+      if (pct !== lastPercent) {
+        lastPercent = pct;
+        progressBar.style.width = pct + '%';
+        if (progressBarText) {
+          progressBarText.textContent = pct + '%';
+        }
+        // 可根据pct值切换颜色等
+        if (pct >= 100) {
+          progressBar.style.backgroundColor = '#28a745'; // 绿色
+        }
       }
     }
 
-    // 5) 重新基于本地实际数据计算版本号
-    const newVersion = await localDataManager.generateLocalActualVersion();
-    localDataManager.saveLocalVersion(newVersion);
+    // 5) 更新图片并显示进度
+    if (totalImages > 0) {
+      const result = await localDataManager.updateFromSystemSheet(imageUrls, onImageProgress);
+      if (result.failedCount > 0) {
+        errors.push(`${result.failedCount}个图片下载失败`);
+      }
+    } else {
+      // 如果没有需要下载的图片，也把进度条置为100%
+      onImageProgress(1, 1);
+    }
 
-    // 显示
-    const localVerSpan = document.getElementById('local-version');
-    if (localVerSpan) localVerSpan.textContent = newVersion;
-
+    // 全部完成后：
     if (errors.length > 0) {
       updateStatus('needUpdate', errors.join(', '));
     } else {
       updateStatus('latest', '最新');
     }
+
   } catch (e) {
     console.error('更新失败:', e);
     updateStatus('needUpdate', '更新失败');
@@ -4286,69 +4368,89 @@ normalizeImageUrl(url) {
       return 'v' + Math.abs(hash).toString(36);
   }
 
-  async updateFromSystemSheet(imageUrls) {
-      if (this.updateStatus === 'updating') {
-          console.log('更新进行中...');
-          return { version: this.getLocalVersion(), failedCount: 0 };
-      }
-      
-      this.updateStatus = 'updating';
-      await this.ensureDbReady();
-
-      try {
-          const checks = await Promise.all(imageUrls.map(async item => {
-              const has = await this.hasLocalImage(item.url, item.type);
-              return { url: item.url, type: item.type, needsDownload: !has };
-          }));
-          
-          const newOnes = checks.filter(x => x.needsDownload);
-          let failedCount = 0;
-          
-          for (const item of newOnes) {
-              const ok = await this.downloadAndCacheImage(item.url, item.type);
-              if (!ok) failedCount++;
-          }
-
-          // 清理未使用的图片
-          if (this.db) {
-              const neededUrls = new Set(imageUrls.map(i => i.url));
-              const tq = this.db.transaction(this.stores.quizImages, 'readwrite');
-              const tb = this.db.transaction(this.stores.bannerImages, 'readwrite');
-              const sq = tq.objectStore(this.stores.quizImages);
-              const sb = tb.objectStore(this.stores.bannerImages);
-              
-              const rq1 = sq.getAllKeys();
-              const rq2 = sb.getAllKeys();
-              
-              rq1.onsuccess = () => {
-                  const keys = rq1.result || [];
-                  keys.forEach(url => {
-                      if (!neededUrls.has(url)) {
-                          sq.delete(url);
-                      }
-                  });
-              };
-              
-              rq2.onsuccess = () => {
-                  const keys = rq2.result || [];
-                  keys.forEach(url => {
-                      if (!neededUrls.has(url)) {
-                          sb.delete(url);
-                      }
-                  });
-              };
-          }
-
-          const newVersion = await this.generateVersion(imageUrls.map(i => i.url));
-          this.saveLocalVersion(newVersion);
-          this.updateStatus = 'latest';
-          
-          return { version: newVersion, failedCount };
-      } catch (error) {
-          this.updateStatus = 'needUpdate';
-          throw error;
-      }
+/**
+ * 从远程系统表更新指定的图片资源
+ * @param {Array} imageUrls - [{ url, type }, ...]
+ * @param {Function} onProgress - 可选回调(loadedCount, totalCount) => void
+ * @returns {Promise<{ version: string, failedCount: number }>}
+ */
+async updateFromSystemSheet(imageUrls, onProgress) {
+  if (this.updateStatus === 'updating') {
+    console.log('更新进行中...');
+    return { version: this.getLocalVersion(), failedCount: 0 };
   }
+  this.updateStatus = 'updating';
+  await this.ensureDbReady();
+
+  try {
+    // 检查哪些需要下载
+    const checks = await Promise.all(imageUrls.map(async item => {
+      const has = await this.hasLocalImage(item.url, item.type);
+      return { url: item.url, type: item.type, needsDownload: !has };
+    }));
+    
+    const newOnes = checks.filter(x => x.needsDownload);
+    let failedCount = 0;
+    let loadedCount = 0;
+    const totalCount = newOnes.length;
+
+    // 并行或串行都可以；为更安全可小批量并行
+    for (let i = 0; i < newOnes.length; i++) {
+      const item = newOnes[i];
+      const ok = await this.downloadAndCacheImage(item.url, item.type);
+      if (!ok) {
+        failedCount++;
+      }
+      loadedCount++;
+      // 调用进度回调
+      if (typeof onProgress === 'function') {
+        onProgress(loadedCount, totalCount);
+      }
+    }
+
+    // 清理无用的图片
+    const neededUrls = new Set(imageUrls.map(i => i.url));
+    // quizImages
+    {
+      const tq = this.db.transaction(this.stores.quizImages, 'readwrite');
+      const sq = tq.objectStore(this.stores.quizImages);
+      const rq1 = sq.getAllKeys();
+      rq1.onsuccess = () => {
+        const keys = rq1.result || [];
+        keys.forEach(url => {
+          if (!neededUrls.has(url)) {
+            sq.delete(url);
+          }
+        });
+      };
+    }
+    // bannerImages
+    {
+      const tb = this.db.transaction(this.stores.bannerImages, 'readwrite');
+      const sb = tb.objectStore(this.stores.bannerImages);
+      const rq2 = sb.getAllKeys();
+      rq2.onsuccess = () => {
+        const keys = rq2.result || [];
+        keys.forEach(url => {
+          if (!neededUrls.has(url)) {
+            sb.delete(url);
+          }
+        });
+      };
+    }
+
+    // 生成新版本
+    const newVersion = await this.generateLocalActualVersion();
+    this.saveLocalVersion(newVersion);
+    this.updateStatus = 'latest';
+
+    return { version: newVersion, failedCount };
+  } catch (error) {
+    this.updateStatus = 'needUpdate';
+    throw error;
+  }
+};
+
 }
 
 
