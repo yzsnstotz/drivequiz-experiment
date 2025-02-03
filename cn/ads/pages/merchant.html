@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>商户详情</title>
+  <title>ZALEM.APP - 商户详情</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* 自定义样式：优化图片尺寸和响应式布局 */
@@ -69,7 +69,7 @@
 <body class="p-4 bg-gray-100">
 
   <!-- 返回按钮 -->
-  <button class="btn-back" onclick="history.back()">返回上一级</button>
+  <button class="btn-back" onclick="handleReturn()">返回上一级</button>
 
   <div class="container">
     <h1 id="merchant-title" class="text-2xl font-bold mb-4">商户详情</h1>
@@ -144,8 +144,8 @@
       const introSection = document.createElement("div");
       introSection.className = "section-container";
       const introText = document.createElement("p");
-      introText.className = "section-text";
-      introText.textContent = introduction;
+      introText.className = "section-text whitespace-pre-wrap";
+      introText.innerHTML = introduction.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
       introSection.appendChild(introText);
       merchantContent.appendChild(introSection);
 
@@ -160,8 +160,8 @@
         featureImage.alt = "商户特点图片";
         featureImage.className = "image-container mb-2";
         const featureDescription = document.createElement("p");
-        featureDescription.className = "section-text";
-        featureDescription.textContent = featureText;
+        featureDescription.className = "section-text whitespace-pre-wrap";
+        featureDescription.innerHTML = featureText.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
         featureSection.appendChild(featureImage);
         featureSection.appendChild(featureDescription);
         merchantContent.appendChild(featureSection);
@@ -172,17 +172,24 @@
         const row = merchantInfo[i];
         const imgUrl = row[4] || '';
         const text = row[3] || '';
-        if (imgUrl && text) {
+        // 只要有文字内容就创建section
+        if (text) {
           const section = document.createElement("div");
           section.className = "section-container";
-          const img = document.createElement("img");
-          img.src = imgUrl;
-          img.alt = text;
-          img.className = "image-container mb-2";
+          
+          // 如果有图片则添加图片
+          if (imgUrl) {
+            const img = document.createElement("img");
+            img.src = imgUrl;
+            img.alt = text;
+            img.className = "image-container mb-2";
+            section.appendChild(img);
+          }
+          
+          // 添加文字内容
           const p = document.createElement("p");
-          p.className = "section-text";
-          p.textContent = text;
-          section.appendChild(img);
+          p.className = "section-text whitespace-pre-wrap";
+          p.innerHTML = text.replace(/\n/g, '<br>').replace(/ /g, '&nbsp;');
           section.appendChild(p);
           merchantContent.appendChild(section);
         }
@@ -200,6 +207,18 @@
       const merchantName = merchantRow[5];
       const merchantSpreadId = merchantRow[6];
       const merchantApiKey = merchantRow[7] || API_KEY;
+      const merchantCategory = merchantRow[3]; // 获取商户类别
+
+      // 设置返回逻辑
+      window.handleReturn = function() {
+        if (merchantCategory === "校园周边" || merchantCategory === "汽车周边") {
+          const baseUrl = "/index.html";
+          const hash = merchantCategory === "校园周边" ? "#campus-life-container" : "#car-surrounding-container";
+          window.location.href = baseUrl + hash;
+        } else {
+          history.back();
+        }
+      };
 
       document.getElementById("merchant-title").textContent = merchantName;
 
