@@ -1,3 +1,77 @@
+/**
+ * 用于检测 localStorage 是否可用的函数
+ * 如果不可用，则意味着当前浏览器处于无痕模式或禁用了 localStorage
+ */
+function checkStorageSupport() {
+  try {
+    const testKey = '__test_key__' + Date.now();
+    window.localStorage.setItem(testKey, 'test');
+    const v = window.localStorage.getItem(testKey);
+    window.localStorage.removeItem(testKey);
+    // 如果取出的值不是"test"说明有问题
+    if (v !== 'test') {
+      return false;
+    }
+    return true;
+  } catch (e) {
+    // 只要报错，就视为不可用
+    return false;
+  }
+}
+
+// 创建一个内存对象，用于在无法使用 localStorage 时保存数据
+const inMemoryStore = {};
+
+// 检测 localStorage 是否可用
+const canUseLocalStorage = checkStorageSupport();
+
+/**
+ * 安全设置 key
+ */
+function safeSetItem(key, value) {
+  if (canUseLocalStorage) {
+    window.localStorage.setItem(key, value);
+  } else {
+    inMemoryStore[key] = value;
+  }
+}
+
+/**
+ * 安全读取 key
+ */
+function safeGetItem(key) {
+  if (canUseLocalStorage) {
+    return window.localStorage.getItem(key);
+  } else {
+    return inMemoryStore[key] || null;
+  }
+}
+
+/**
+ * 安全删除 key
+ */
+function safeRemoveItem(key) {
+  if (canUseLocalStorage) {
+    window.localStorage.removeItem(key);
+  } else {
+    delete inMemoryStore[key];
+  }
+}
+
+/**
+ * 安全清空
+ */
+function safeClear() {
+  if (canUseLocalStorage) {
+    window.localStorage.clear();
+  } else {
+    for (const k in inMemoryStore) {
+      delete inMemoryStore[k];
+    }
+  }
+}
+
+
 // ==================================================
 // 全局命名空间
 // ==================================================
@@ -801,6 +875,30 @@ function updateQuestionState(q, favoriteBtn) {
   if (favorites[favKey]) favoriteBtn.classList.add('favorited');
 }
 
+
+// Helper function to ensure image is loaded
+async function ensureImageLoaded(imageUrl) {
+  if (!imageUrl) return null;
+
+  try {
+      // Check local storage first
+      const localUrl = await localDataManager.getLocalImage(imageUrl);
+      if (localUrl) return localUrl;
+
+      // If not in local storage, download and cache
+      const downloaded = await localDataManager.downloadAndCacheImage(imageUrl);
+      if (downloaded) {
+          return await localDataManager.getLocalImage(imageUrl);
+      }
+      return null;
+  } catch (error) {
+      console.warn(`Image loading failed: ${imageUrl}`, error);
+      return null;
+  }
+}
+
+
+
 /**
  * 优化后的题目展示函数
  */
@@ -820,27 +918,92 @@ async function loadQuestion() {
   }
   questionElem.textContent = text;
 
-  // 处理图片加载
+  // 重置图片容器
   imageContainer.style.display = 'none';
   imageContainer.innerHTML = "";
 
+  // 处理图片加载
   if (q.image) {
-      imageContainer.style.display = 'flex';
-      imageContainer.textContent = "加载中...";
+      try {
+          // 显示加载状态
+          imageContainer.style.display = 'flex';
+          imageContainer.textContent = "加载中...";
 
-      const localUrl = await ensureImageLoaded(q.image);
-      if (localUrl) {
-          const img = new Image();
-          img.src = localUrl;
-          img.onload = () => {
-              imageContainer.innerHTML = "";
-              imageContainer.appendChild(img);
-          };
-          img.onerror = () => {
-              imageContainer.style.display = 'none';
-          };
-      } else {
+          // 尝试从本地存储获取图片
+          const localUrl = await localDataManager.getLocalImage(q.image);
+          
+          if (localUrl) {
+              console.log('Using local image:', q.image);
+              const img = new Image();
+              
+              // 设置图片加载事件处理
+              img.onload = () => {
+                  console.log('Local image loaded successfully:', q.image);
+                  imageContainer.innerHTML = "";
+                  imageContainer.appendChild(img);
+                  imageContainer.style.display = 'flex';
+              };
+              
+              img.onerror = async (error) => {
+                  console.error('Local image load failed:', q.image, error);
+                  // 如果本地加载失败，尝试重新下载
+                  try {
+                      const downloaded = await localDataManager.downloadAndCacheImage(q.image);
+                      if (downloaded) {
+                          const newLocalUrl = await localDataManager.getLocalImage(q.image);
+                          if (newLocalUrl) {
+                              img.src = newLocalUrl;
+                              return;
+                          }
+                      }
+                  } catch (e) {
+                      console.error('Image recovery failed:', e);
+                  }
+                  imageContainer.style.display = 'none';
+                  imageContainer.innerHTML = "";
+              };
+
+              // 设置图片源
+              img.src = localUrl;
+              
+              // 添加超时处理
+              setTimeout(() => {
+                  if (imageContainer.textContent === "加载中...") {
+                      console.warn('Image load timeout:', q.image);
+                      imageContainer.style.display = 'none';
+                      imageContainer.innerHTML = "";
+                  }
+              }, 10000); // 10秒超时
+              
+          } else {
+              console.log('Local image not found, downloading:', q.image);
+              // 尝试下载并缓存图片
+              const downloaded = await localDataManager.downloadAndCacheImage(q.image);
+              if (downloaded) {
+                  const newLocalUrl = await localDataManager.getLocalImage(q.image);
+                  if (newLocalUrl) {
+                      const img = new Image();
+                      img.onload = () => {
+                          imageContainer.innerHTML = "";
+                          imageContainer.appendChild(img);
+                          imageContainer.style.display = 'flex';
+                      };
+                      img.onerror = () => {
+                          imageContainer.style.display = 'none';
+                          imageContainer.innerHTML = "";
+                      };
+                      img.src = newLocalUrl;
+                  } else {
+                      throw new Error('Failed to get local URL after download');
+                  }
+              } else {
+                  throw new Error('Failed to download image');
+              }
+          }
+      } catch (error) {
+          console.error('Image handling error:', error);
           imageContainer.style.display = 'none';
+          imageContainer.innerHTML = "";
       }
   }
 
@@ -1222,51 +1385,56 @@ function showBattleIntroPopup(){
  * @returns {Promise<Array>} Array of questions
  */
 async function loadQuestionsUnified(mode, options = {}) {
-    console.log(`=== 开始加载题目 (${mode}模式) ===`);
-    let loadedQuestions = [];
+  console.log(`=== Starting question loading (${mode} mode) ===`);
+  let loadedQuestions = [];
 
-    try {
-        switch (mode) {
-            case 'normal':
-                loadedQuestions = await loadNormalModeQuestions(options.categoryObj);
-                break;
-            case 'battle':
-                loadedQuestions = await loadBattleModeQuestions();
-                break;
-            case 'favorite':
-                loadedQuestions = await loadFavoriteModeQuestions(options.favorites);
-                break;
-            case 'mistake':
-                loadedQuestions = await loadMistakeModeQuestions(options.mistakes);
-                break;
-            default:
-                throw new Error('未知的加载模式');
-        }
+  try {
+      // Step 1: Load questions based on mode
+      switch (mode) {
+          case 'normal':
+              loadedQuestions = await loadNormalModeQuestions(options.categoryObj);
+              break;
+          case 'battle':
+              loadedQuestions = await loadBattleModeQuestions();
+              break;
+          case 'favorite':
+              loadedQuestions = await loadFavoriteModeQuestions(options.favorites);
+              break;
+          case 'mistake':
+              loadedQuestions = await loadMistakeModeQuestions(options.mistakes);
+              break;
+          default:
+              throw new Error('Unknown loading mode');
+      }
 
-        if (!loadedQuestions || !Array.isArray(loadedQuestions) || loadedQuestions.length === 0) {
-            throw new Error('没有找到可用的题目');
-        }
+      if (!loadedQuestions || !Array.isArray(loadedQuestions) || loadedQuestions.length === 0) {
+          throw new Error('No questions available');
+      }
 
-        // Apply common processing
-        loadedQuestions = await processLoadedQuestions(loadedQuestions, mode);
-        
-        // Ensure questions array is valid before preloading images
-        if (Array.isArray(loadedQuestions) && loadedQuestions.length > 0) {
-            // Start preloading images
-            await prepareFirstQuestionImage(loadedQuestions[0]);
-            if (loadedQuestions.length > 1) {
-                startBackgroundImagePreload(loadedQuestions.slice(1));
-            }
-        } else {
-            throw new Error('题目数据格式错误');
-        }
+      // Step 2: Process loaded questions
+      loadedQuestions = await processLoadedQuestions(loadedQuestions, mode);
 
-        return loadedQuestions;
-    } catch (error) {
-        console.error(`加载题目失败 (${mode}模式):`, error);
-        throw error;
-    }
+      // Step 3: Preload images
+      if (Array.isArray(loadedQuestions) && loadedQuestions.length > 0) {
+          // Start with first question's image
+          if (loadedQuestions[0].image) {
+              await ensureImageLoaded(loadedQuestions[0].image);
+          }
+
+          // Background load remaining images
+          if (loadedQuestions.length > 1) {
+              const remainingQuestions = loadedQuestions.slice(1);
+              startBackgroundImagePreload(remainingQuestions);
+          }
+      }
+
+      return loadedQuestions;
+  } catch (error) {
+      console.error(`Question loading failed (${mode} mode):`, error);
+      throw error;
+  }
 }
+
 
 /**
  * Load questions for normal quiz mode
@@ -1516,17 +1684,34 @@ function groupMistakesBySheet(mistakes) {
  * Process loaded questions with common logic
  */
 async function processLoadedQuestions(questions, mode) {
-    // Add Japanese content if needed
-    if (showJapanese) {
-        questions = await addJapaneseContent(questions);
-    }
+  // Add Japanese content if needed
+  if (showJapanese) {
+      questions = await addJapaneseContent(questions);
+  }
 
-    // Shuffle if random order is enabled (except for battle mode which handles its own shuffling)
-    if (randomOrder && mode !== 'battle') {
-        questions = shuffle(questions);
-    }
+  // Validate each question's structure
+  questions = questions.map(q => ({
+      ...q,
+      image: q.image || '',                 // Ensure image property exists
+      question: q.question || '无题目',      // Ensure question text exists
+      answer: q.answer || '',               // Ensure answer exists
+      explanation: q.explanation || '',      // Ensure explanation exists
+      jpQuestion: q.jpQuestion || '',       // Ensure Japanese properties exist
+      jpExplanation: q.jpExplanation || ''
+  }));
 
-    return questions;
+  // Filter out invalid questions
+  questions = questions.filter(q => 
+      q.question !== '无题目' && 
+      (q.answer === '⭕' || q.answer === '❌')
+  );
+
+  // Shuffle if random order is enabled (except for battle mode)
+  if (randomOrder && mode !== 'battle') {
+      questions = shuffle(questions);
+  }
+
+  return questions;
 }
 
 // 3. Add missing Japanese content handling function
@@ -1828,20 +2013,23 @@ async function backgroundImagePreload(questions) {
  * @param {Array} questions Array of questions to preload images for
  */
 async function startBackgroundImagePreload(questions) {
-  // Reset progress tracking
-  battleImageLoadingProgress = {
-      total: questions.filter(q => q.image).length,
-      loaded: 0,
-      currentIndex: 0
-  };
+  const batchSize = 3; // Process 3 images at a time
+  let currentIndex = 0;
 
-  // Start with current question's image
-  if (currentQuestionIndex >= 0 && questions[currentQuestionIndex]?.image) {
-      await preloadQuestionImage(questions[currentQuestionIndex]);
+  while (currentIndex < questions.length) {
+      const batch = questions
+          .slice(currentIndex, currentIndex + batchSize)
+          .filter(q => q.image);
+
+      await Promise.all(
+          batch.map(question => ensureImageLoaded(question.image))
+      );
+
+      currentIndex += batchSize;
+      
+      // Small delay between batches to prevent overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 100));
   }
-
-  // Then load the rest in background
-  backgroundImagePreload(questions);
 }
 
 // 大乱斗开始
@@ -1858,6 +2046,7 @@ async function startBattleGame() {
   document.getElementById('quiz-container').style.display = 'block';
   document.getElementById('battle-header').style.display = 'flex';
   document.getElementById('battle-loading-bar-wrap').style.display = 'block';
+  document.querySelector('.battle-info-container').style.display = 'flex';
 
   updateButtonsVisibility(true);
   updateNavigationVisibility(true);
@@ -2441,15 +2630,16 @@ function pauseExam(){
 // ==================================================
 // 7. 历史/个人中心
 // ==================================================
-function clearAllHistory(){
-  showIOSConfirm("清除历史","确认清除所有历史记录和错题吗？",()=>{
-    localStorage.clear();
-    favorites={};
-    showIOSAlert("提示","历史已清除，包括收藏",()=>{
+function clearAllHistory() {
+  showIOSConfirm("清除历史", "确认清除所有历史记录和错题吗？", () => {
+    safeClear();
+    favorites = {};
+    showIOSAlert("提示", "历史已清除，包括收藏", () => {
       resetQuiz();
     });
-  },()=>{});
+  }, () => {});
 }
+
 
 function showSummary(){
   hideAll();
@@ -2565,69 +2755,152 @@ function applySettingsAndClose(){
 // ==================================================
 // 9. 合宿生活 & 汽车周边(广告区)
 // ==================================================
-function showCampusLife(){
+async function showCampusLife(){
   hideAll();
   document.getElementById('campus-life-container').style.display='block';
-  const listDiv= document.getElementById('campus-life-list');
-  listDiv.innerHTML="";
-  let data= allBannerData.filter(x=> x.category==="校园周边");
+  const listDiv = document.getElementById('campus-life-list');
+  listDiv.innerHTML = "";
+  let data = allBannerData.filter(x => x.category === "校园周边");
   if(!data.length){
-    listDiv.innerHTML="<p>暂无校园周边数据</p>";
+    listDiv.innerHTML = "<p>暂无校园周边数据</p>";
     return;
   }
-  data.forEach(d=>{
-    let c= document.createElement('div');
-    c.className="life-item-card";
-    c.innerHTML=`
-      <div class="category-icon-container">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
-          ${
-            d.subCategory==='饭店'? '<path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>' 
-            : d.subCategory==='物产店'? '<path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2S15.9 22 17 22s2-.9 2-2-.9-2-2-2z"/>' 
-            : '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>'
-          }
-        </svg>
-      </div>
-      <div class="merchant-type">${d.subCategory||'无子类'}</div>
-    `;
-    c.onclick=()=>{
-      const link= d.type==="abs"? ensureAbsoluteUrl(d.link): `./ads/pages/merchant.html?merchantId=${d.id}`;
-      window.open(link,"_blank");
-    };
-    listDiv.appendChild(c);
+
+  // 按子类分组
+  let groupMap = {};
+  data.forEach(item => {
+    const subCategory = item.subCategory || '其他';
+    if (!groupMap[subCategory]) groupMap[subCategory] = [];
+    groupMap[subCategory].push(item);
   });
+
+  // 按子类名称排序
+  let sortedSubCategories = Object.keys(groupMap).sort();
+
+  // 为每个子类创建一个slider组
+  for (const subCategory of sortedSubCategories) {
+    const items = groupMap[subCategory];
+    const groupDiv = document.createElement('div');
+    groupDiv.className = "slider-group";
+    groupDiv.innerHTML = `
+      <div class="slider-header">
+        <div class="slider-title">${subCategory}</div>
+        <div class="slider-primary-text">校园周边 - ${subCategory}</div>
+        <div class="slider-secondary-text">为您精选${items.length}家${subCategory}商户</div>
+      </div>
+    `;
+
+    const rowDiv = document.createElement('div');
+    rowDiv.className = "slider-row";
+
+    // 添加商户卡片
+    for (const item of items) {
+      const videoId = item.type === "abs" ? getYoutubeVideoId(item.link) : null;
+      const div = document.createElement('div');
+      div.className = "slider-item";
+      div.innerHTML = `
+        <div class="slider-item-content">
+          <div class="slider-image-wrapper">
+            <img src="${await localDataManager.getLocalImage(item.image, 'banner') || item.image}" 
+                 alt="${item.title || subCategory}" 
+                 loading="lazy" />
+            ${videoId ? `
+              <div class="video-indicator">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            ` : ''}
+          </div>
+          <div class="slider-text">${item.title || subCategory}</div>
+        </div>
+      `;
+
+      div.addEventListener('click', () => {
+        const link = item.type === "abs" ? ensureAbsoluteUrl(item.link) : `./ads/pages/merchant.html?merchantId=${item.id}`;
+        window.open(link, "_blank");
+      });
+
+      rowDiv.appendChild(div);
+    }
+
+    groupDiv.appendChild(rowDiv);
+    listDiv.appendChild(groupDiv);
+  }
 }
 
-function showCarSurrounding(){
+async function showCarSurrounding(){
   hideAll();
   document.getElementById('car-surrounding-container').style.display='block';
-  const listDiv= document.getElementById('car-surrounding-list');
-  listDiv.innerHTML="";
-  let data= allBannerData.filter(x=> x.category==="汽车周边");
+  const listDiv = document.getElementById('car-surrounding-list');
+  listDiv.innerHTML = "";
+  let data = allBannerData.filter(x => x.category === "汽车周边");
   if(!data.length){
-    listDiv.innerHTML="<p>暂无汽车周边数据</p>";
+    listDiv.innerHTML = "<p>暂无汽车周边数据</p>";
     return;
   }
-  data.forEach(d=>{
-    let c= document.createElement('div');
-    c.className="car-item-card";
-    c.innerHTML=`
-      <div class="category-icon-container">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="32" height="32">
-          ${
-            d.subCategory==='汽车用品'?'<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>' 
-            : '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>'
-          }
-        </svg>
-      </div>
-      <div class="merchant-type">${d.subCategory||'无子类'}</div>
-    `;
-    c.onclick=()=>{
-      const link= d.type==="abs"? ensureAbsoluteUrl(d.link): `./ads/pages/merchant.html?merchantId=${d.id}`;
-      window.open(link,"_blank");
-    };
-    listDiv.appendChild(c);
+
+  // 按子类分组
+  let groupMap = {};
+  data.forEach(item => {
+    const subCategory = item.subCategory || '其他';
+    if (!groupMap[subCategory]) groupMap[subCategory] = [];
+    groupMap[subCategory].push(item);
   });
+
+  // 按子类名称排序
+  let sortedSubCategories = Object.keys(groupMap).sort();
+
+  // 为每个子类创建一个slider组
+  for (const subCategory of sortedSubCategories) {
+    const items = groupMap[subCategory];
+    const groupDiv = document.createElement('div');
+    groupDiv.className = "slider-group";
+    groupDiv.innerHTML = `
+      <div class="slider-header">
+        <div class="slider-title">${subCategory}</div>
+        <div class="slider-primary-text">汽车周边 - ${subCategory}</div>
+        <div class="slider-secondary-text">为您精选${items.length}家${subCategory}商户</div>
+      </div>
+    `;
+
+    const rowDiv = document.createElement('div');
+    rowDiv.className = "slider-row";
+
+    // 添加商户卡片
+    for (const item of items) {
+      const videoId = item.type === "abs" ? getYoutubeVideoId(item.link) : null;
+      const div = document.createElement('div');
+      div.className = "slider-item";
+      div.innerHTML = `
+        <div class="slider-item-content">
+          <div class="slider-image-wrapper">
+            <img src="${await localDataManager.getLocalImage(item.image, 'banner') || item.image}" 
+                 alt="${item.title || subCategory}" 
+                 loading="lazy" />
+            ${videoId ? `
+              <div class="video-indicator">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            ` : ''}
+          </div>
+          <div class="slider-text">${item.title || subCategory}</div>
+        </div>
+      `;
+
+      div.addEventListener('click', () => {
+        const link = item.type === "abs" ? ensureAbsoluteUrl(item.link) : `./ads/pages/merchant.html?merchantId=${item.id}`;
+        window.open(link, "_blank");
+      });
+
+      rowDiv.appendChild(div);
+    }
+
+    groupDiv.appendChild(rowDiv);
+    listDiv.appendChild(groupDiv);
+  }
 }
 
 // ==================================================
@@ -2661,11 +2934,267 @@ async function fetchAllBannerData(){
       primetext: row[14]||"",
       secondaryText: row[15]||"",
       title: row[9]||""
-    })).filter(x=>x.id && x.position);
+    })).filter(x=>x.id);
   } catch(e){
     console.error(e);
     return [];
   }
+}
+
+// Video player component and handler functions
+function createVideoPlayer(url, onClose) {
+  const container = document.createElement('div');
+  container.className = 'video-player-container';
+  
+  const youtubeId = getYoutubeVideoId(url);
+  const isDirectVideo = ['.mp4', '.webm', '.ogg'].some(ext => 
+      url.toLowerCase().endsWith(ext)
+  );
+  
+  let playerHtml;
+  if (youtubeId) {
+      const embedUrl = createYouTubeEmbedUrl(youtubeId);
+      playerHtml = `
+          <iframe 
+              src="${embedUrl}"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              loading="lazy"
+          ></iframe>`;
+  } else if (isDirectVideo) {
+      playerHtml = `
+          <video controls playsinline preload="metadata">
+              <source src="${url}" type="video/mp4">
+              您的浏览器不支持视频播放
+          </video>`;
+  } else {
+      console.warn('Unsupported video URL format:', url);
+      return null;
+  }
+
+  container.innerHTML = `
+      <div class="video-player-overlay">
+          <div class="video-player-content">
+              <div class="video-player-header">
+                  <button class="video-close-btn" aria-label="关闭视频">
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                      </svg>
+                  </button>
+              </div>
+              <div class="video-wrapper">
+                  ${playerHtml}
+              </div>
+          </div>
+      </div>
+  `;
+
+  // Add styles with performance optimizations
+  const style = document.createElement('style');
+  style.textContent = `
+      .video-player-container {
+          position: fixed;
+          inset: 0;
+          z-index: 100000;
+          background: rgba(0, 0, 0, 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
+      }
+      .video-player-overlay {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          will-change: transform;
+      }
+      .video-player-content {
+          width: 100%;
+          max-width: 800px;
+          background: #000;
+          border-radius: 12px;
+          overflow: hidden;
+          position: relative;
+          transform: translateZ(0);
+      }
+      .video-player-header {
+          padding: 8px;
+          text-align: right;
+          background: rgba(0, 0, 0, 0.5);
+          position: absolute;
+          inset: 0 0 auto 0;
+          z-index: 1;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+      }
+      .video-close-btn {
+          background: none;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
+          color: white;
+          opacity: 0.8;
+          transition: opacity 0.2s;
+          touch-action: manipulation;
+      }
+      .video-close-btn:hover,
+      .video-close-btn:focus {
+          opacity: 1;
+      }
+      .video-close-btn svg {
+          width: 24px;
+          height: 24px;
+          display: block;
+      }
+      .video-wrapper {
+          position: relative;
+          padding-top: 56.25%;
+          background: #000;
+      }
+      .video-wrapper video,
+      .video-wrapper iframe {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          border: none;
+      }
+  `;
+  document.head.appendChild(style);
+
+  // Add event listeners with performance optimizations
+  const closeBtn = container.querySelector('.video-close-btn');
+  closeBtn.addEventListener('click', () => {
+      container.remove();
+      style.remove();
+      if (onClose) onClose();
+  }, { passive: true });
+
+  // Handle click outside with passive event listener
+  container.addEventListener('click', (e) => {
+      if (e.target === container || e.target.classList.contains('video-player-overlay')) {
+          closeBtn.click();
+      }
+  }, { passive: true });
+
+  return container;
+}
+
+// Function to safely create a YouTube embed URL with proper parameters
+function createYouTubeEmbedUrl(videoId) {
+  const params = new URLSearchParams({
+      autoplay: '1',
+      rel: '0',           // Don't show related videos
+      modestbranding: '1', // Minimal YouTube branding
+      enablejsapi: '1'     // Enable JavaScript API
+  });
+  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+}
+
+
+// Function to extract YouTube video ID from various YouTube URL formats
+function getYoutubeVideoId(url) {
+  if (!url) return null;
+  
+  try {
+      const urlObj = new URL(url);
+      if (urlObj.hostname.includes('youtu.be')) {
+          return urlObj.pathname.slice(1);
+      }
+      
+      const videoId = urlObj.searchParams.get('v');
+      if (videoId) return videoId;
+      
+      const embedMatch = urlObj.pathname.match(/^\/embed\/([^/]+)/);
+      if (embedMatch) return embedMatch[1];
+  } catch (e) {
+      console.warn('Invalid URL format:', url);
+  }
+  return null;
+}
+
+// Function to get YouTube thumbnail URL with different quality options
+function getYouTubeThumbnailUrl(videoId, quality = 'maxresdefault') {
+  //function getYouTubeThumbnailUrl(videoId, quality = 'maxresdefault') {
+  // Available qualities: 
+  // maxresdefault.jpg (1280x720)
+  // sddefault.jpg (640x480)
+  // hqdefault.jpg (480x360)
+  // mqdefault.jpg (320x180)
+  // default.jpg (120x90)
+  return `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`;
+}
+
+
+// Function to check if thumbnail exists and fallback to lower quality if needed
+async function getValidYouTubeThumbnail(videoId) {
+  if (!videoId) return null;
+  
+  // Define thumbnail qualities in order of preference
+  const qualities = ['maxresdefault', 'sddefault', 'hqdefault', 'default'];
+  
+  // First check if we have any cached versions
+  for (const quality of qualities) {
+      const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`;
+      try {
+          const hasLocal = await localDataManager.hasLocalImage(thumbnailUrl, 'banner');
+          if (hasLocal) {
+              return thumbnailUrl;
+          }
+      } catch (e) {
+          console.warn(`Failed to check local cache for ${quality}:`, e);
+      }
+  }
+
+  // If no cached version exists, try to fetch each quality
+  for (const quality of qualities) {
+      const thumbnailUrl = `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`;
+      try {
+          // Try to download and cache the image directly
+          const success = await localDataManager.downloadAndCacheImage(thumbnailUrl, 'banner');
+          if (success) {
+              console.log(`Successfully cached YouTube thumbnail: ${quality}`);
+              return thumbnailUrl;
+          }
+
+          // If direct download fails, try fetching with Image object
+          const loadPromise = new Promise((resolve, reject) => {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => resolve(true);
+              img.onerror = () => reject(new Error(`Failed to load ${quality} thumbnail`));
+              img.src = thumbnailUrl;
+          });
+
+          await loadPromise;
+          // If image loads successfully, try caching again
+          const secondAttempt = await localDataManager.downloadAndCacheImage(thumbnailUrl, 'banner');
+          if (secondAttempt) {
+              return thumbnailUrl;
+          }
+      } catch (e) {
+          console.warn(`Failed to fetch ${quality} thumbnail:`, e);
+          continue;
+      }
+  }
+
+  // If all attempts fail, return default thumbnail URL
+  const defaultThumbnail = `https://i.ytimg.com/vi/${videoId}/default.jpg`;
+  console.warn(`Falling back to default thumbnail: ${defaultThumbnail}`);
+  return defaultThumbnail;
+}
+
+
+
+// Function to check if URL is a video
+function isVideoUrl(url) {
+  const videoExtensions = ['.mp4', '.webm', '.ogg'];
+  return videoExtensions.some(ext => url.toLowerCase().endsWith(ext)) || 
+         getYoutubeVideoId(url) !== null;
 }
 
 function ensureAbsoluteUrl(u){
@@ -2707,25 +3236,28 @@ async function loadTopBanner() {
   `;
 }
 
-async function loadBottomBanners(){
-  const bottom= document.getElementById('banner-bottom');
-  bottom.innerHTML="";
-  let data= allBannerData.filter(x=> x.position === x.position === "1" && "popup" && x.position.startsWith("slider-"));
-  if(!data.length){
-    bottom.style.display='none';
+async function loadBottomBanners() {
+  const bottom = document.getElementById('banner-bottom');
+  bottom.innerHTML = "";
+
+  // 举例：筛选 position === "bottom" 的数据
+  let data = allBannerData.filter(x => x.position === "bottom");
+  if (!data.length) {
+    bottom.style.display = 'none';
     return;
   }
-  bottom.style.display='block';
-  for(const b of data){
-    if(b.image){
-      await localDataManager.downloadAndCacheImage(b.image,'banner');
+  bottom.style.display = 'block';
+
+  for (const b of data) {
+    if (b.image) {
+      await localDataManager.downloadAndCacheImage(b.image, 'banner');
     }
-    let slot= document.createElement('div');
-    slot.className="banner-slot";
-    const linkUrl= b.type==="abs"? ensureAbsoluteUrl(b.link): `./ads/pages/merchant.html?merchantId=${b.id}`;
-    let localURL= b.image? await localDataManager.getLocalImage(b.image,'banner'): null;
-    let imgSrc= localURL|| b.image;
-    slot.innerHTML= `
+    let slot = document.createElement('div');
+    slot.className = "banner-slot";
+    const linkUrl = b.type === "abs" ? ensureAbsoluteUrl(b.link) : `./ads/pages/merchant.html?merchantId=${b.id}`;
+    let localURL = b.image ? await localDataManager.getLocalImage(b.image, 'banner') : null;
+    let imgSrc = localURL || b.image;
+    slot.innerHTML = `
       <a href="${linkUrl}" target="_blank">
         <img src="${imgSrc}" alt="广告" />
       </a>
@@ -2734,124 +3266,273 @@ async function loadBottomBanners(){
   }
 }
 
-async function loadSliderBanner(){
-  try{
-    const url= `https://sheets.googleapis.com/v4/spreadsheets/${ADS_SPREAD_ID}/values/${ADS_SLIDER_MANAGER_SHEET_NAME}?key=${ADS_API_KEY}`;
-    const r= await fetch(url);
-    if(!r.ok) throw new Error("无法获取Slider数据");
-    const d= await r.json();
-    if(!d.values|| d.values.length<=1) return;
 
-    const managerData= d.values.slice(1).reduce((acc,row)=>{
-      if(row[0] && row[0].startsWith('Slider-')){
-        acc[row[0]]={
-          title: row[1]||'',
-          primaryText: row[2]||'',
-          secondaryText: row[3]||''
-        };
+function handleSliderItemClick(item) {
+  if (item.type === "internal") {
+      switch (item.action) {
+          case "battle":
+              openBattleMode();
+              break;
+          case "favorites":
+              showFavorites();
+              break;
+          case "mistakes":
+              startMistakeQuiz();
+              break;
+          default:
+              console.warn('Unknown internal action:', item.action);
       }
-      return acc;
-    },{});
-
-    let sliderData= allBannerData.filter(x=> x.position.startsWith("slider-"));
-    if(!sliderData.length){
-      document.getElementById('slider-banner-container').style.display='none';
       return;
-    }
-    document.getElementById('slider-banner-container').style.display='block';
+  }
 
-    let groupMap={};
-    sliderData.forEach(item=>{
-      let suf= item.position.replace('slider-','');
-      if(!groupMap[suf]) groupMap[suf]=[];
-      groupMap[suf].push(item);
-    });
-    let container= document.getElementById('slider-banner-container');
-    container.innerHTML="";
-    let sortedKeys= Object.keys(groupMap).sort((a,b)=> +a- +b);
-    for(const k of sortedKeys){
-      let arr= groupMap[k];
-      let sliderKey= `Slider-${k}`;
-      let mg= managerData[sliderKey]||{};
-      let groupDiv= document.createElement('div');
-      groupDiv.className="slider-group";
-      groupDiv.innerHTML=`
-        <div class="slider-header">
-          <div class="slider-title">${mg.title || sliderKey}</div>
-          ${mg.primaryText? `<div class="slider-primary-text">${mg.primaryText}</div>`:''}
-          ${mg.secondaryText? `<div class="slider-secondary-text">${mg.secondaryText}</div>`:''}
-        </div>
-      `;
-      let rowDiv= document.createElement('div');
-      rowDiv.className="slider-row";
+  const url = item.type === "abs" ? 
+      ensureAbsoluteUrl(item.link) : 
+      `./ads/pages/merchant.html?merchantId=${item.id}`;
 
-      for(const item of arr){
-        if(item.image){
-          await localDataManager.downloadAndCacheImage(item.image,'banner');
-        }
-        let linkUrl= item.type==="abs"? ensureAbsoluteUrl(item.link): `./ads/pages/merchant.html?merchantId=${item.id}`;
-        let localURL= item.image? await localDataManager.getLocalImage(item.image,'banner'):null;
-        let imgSrc= localURL|| item.image;
-        let div= document.createElement('div');
-        div.className="slider-item";
-        div.innerHTML=`
-          <a href="${linkUrl}" target="_blank">
-            <img src="${imgSrc}" alt="slider广告" />
-            <div class="slider-text">${item.title||""}</div>
-          </a>
-        `;
-        rowDiv.appendChild(div);
+  if (item.type === "abs" && isVideoUrl(url)) {
+      const player = createVideoPlayer(url);
+      if (player) {
+          document.body.appendChild(player);
+      } else {
+          window.open(url, "_blank");
       }
-      groupDiv.appendChild(rowDiv);
-      container.appendChild(groupDiv);
-    }
-  } catch(e){
-    console.error('加载Slider失败:', e);
-    document.getElementById('slider-banner-container').style.display='none';
+  } else {
+      window.open(url, "_blank");
   }
 }
 
-async function loadPopupAds(){
-  if(!allBannerData.length){
-    allBannerData= await fetchAllBannerData();
+
+async function loadSliderBanner() {
+  try {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${ADS_SPREAD_ID}/values/${ADS_SLIDER_MANAGER_SHEET_NAME}?key=${ADS_API_KEY}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("无法获取Slider数据");
+      const d = await r.json();
+      if (!d.values || d.values.length <= 1) return;
+
+      const managerData = d.values.slice(1).reduce((acc, row) => {
+          if (row[0] && row[0].startsWith('Slider-')) {
+              acc[row[0]] = {
+                  title: row[1] || '',
+                  primaryText: row[2] || '',
+                  secondaryText: row[3] || ''
+              };
+          }
+          return acc;
+      }, {});
+
+      let sliderData = allBannerData.filter(x => x.position.startsWith("slider-"));
+      if (!sliderData.length) {
+          document.getElementById('slider-banner-container').style.display = 'none';
+          return;
+      }
+      document.getElementById('slider-banner-container').style.display = 'block';
+
+      // Process each slider item
+      for (const item of sliderData) {
+          if (item.type === "abs" && item.link) {
+              const videoId = getYoutubeVideoId(item.link);
+              if (videoId) {
+                  try {
+                      // Get valid thumbnail URL
+                      const thumbnailUrl = await getValidYouTubeThumbnail(videoId);
+                      if (thumbnailUrl) {
+                          // Update the item's image property
+                          item.image = thumbnailUrl;
+                      }
+                  } catch (error) {
+                      console.warn(`无法处理视频 ${videoId} 的缩略图:`, error);
+                      // 使用默认图片或占位图
+                      item.image = './src/images/default-thumbnail.webp';
+                  }
+              }
+          }
+      }
+
+      let groupMap = {};
+      sliderData.forEach(item => {
+          let suf = item.position.replace('slider-', '');
+          if (!groupMap[suf]) groupMap[suf] = [];
+          groupMap[suf].push(item);
+      });
+
+      let container = document.getElementById('slider-banner-container');
+      container.innerHTML = "";
+      
+      let sortedKeys = Object.keys(groupMap).sort((a, b) => +a - +b);
+      for (const k of sortedKeys) {
+          let arr = groupMap[k];
+          let sliderKey = `Slider-${k}`;
+          let mg = managerData[sliderKey] || {};
+          let groupDiv = document.createElement('div');
+          groupDiv.className = "slider-group";
+          groupDiv.innerHTML = `
+              <div class="slider-header">
+                  <div class="slider-title">${mg.title || sliderKey}</div>
+                  ${mg.primaryText ? `<div class="slider-primary-text">${mg.primaryText}</div>` : ''}
+                  ${mg.secondaryText ? `<div class="slider-secondary-text">${mg.secondaryText}</div>` : ''}
+              </div>
+          `;
+          let rowDiv = document.createElement('div');
+          rowDiv.className = "slider-row";
+
+          for (const item of arr) {
+              const videoId = item.type === "abs" ? getYoutubeVideoId(item.link) : null;
+              let div = document.createElement('div');
+              div.className = "slider-item";
+              
+              // Add video indicator if it's a YouTube link
+              const isVideo = videoId !== null;
+              div.innerHTML = `
+                  <div class="slider-item-content">
+                      <div class="slider-image-wrapper">
+                          <img src="${await localDataManager.getLocalImage(item.image, 'banner') || item.image}" 
+                               alt="${item.title || '视频缩略图'}"
+                               loading="lazy" />
+                          ${isVideo ? `
+                              <div class="video-indicator">
+                                  <svg viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M8 5v14l11-7z"/>
+                                  </svg>
+                              </div>
+                          ` : ''}
+                      </div>
+                      <div class="slider-text">${item.title || ""}</div>
+                  </div>
+              `;
+
+              div.addEventListener('click', () => handleSliderItemClick(item));
+              rowDiv.appendChild(div);
+          }
+          groupDiv.appendChild(rowDiv);
+          container.appendChild(groupDiv);
+      }
+
+      // Add styles for video indicator
+      const style = document.createElement('style');
+      style.textContent = `
+          .slider-image-wrapper {
+              position: relative;
+              width: 100%;
+              height: 100%;
+          }
+          .video-indicator {
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              background: rgba(0, 0, 0, 0.7);
+              border-radius: 50%;
+              width: 48px;
+              height: 48px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              pointer-events: none;
+          }
+          .video-indicator svg {
+              width: 24px;
+              height: 24px;
+          }
+          .slider-item:hover .video-indicator {
+              background: rgba(0, 0, 0, 0.8);
+              transform: translate(-50%, -50%) scale(1.1);
+              transition: all 0.2s ease;
+          }
+      `;
+      document.head.appendChild(style);
+
+  } catch (e) {
+      console.error('加载Slider失败:', e);
+      document.getElementById('slider-banner-container').style.display = 'none';
   }
-  let popupData= allBannerData.filter(x=> x.position==="popup");
-  if(!popupData.length){
-    document.getElementById('popup-container').style.display='none';
-    return;
-  }
-  const p= popupData[0];
-  document.getElementById('popup-container').style.display='block';
-  document.getElementById('popup-state1').style.display='block';
-  document.getElementById('popup-state2').style.display='none';
-
-  if(p.image){
-    await localDataManager.downloadAndCacheImage(p.image,'banner');
-  }
-  let localURL= p.image? await localDataManager.getLocalImage(p.image,'banner'): null;
-  let imgSrc= localURL|| p.image;
-
-  document.getElementById('popup-diamond').src= imgSrc;
-  document.getElementById('popup-small-title').textContent= p.title;
-  document.getElementById('popup-small-secondary').textContent= p.secondaryText;
-
-  document.getElementById('popup-full-image').src= imgSrc;
-  document.getElementById('popup-full-title').textContent= p.title;
-  document.getElementById('popup-full-prime').textContent= p.primetext;
-  document.getElementById('popup-action-btn').textContent= p.btntext;
-  document.getElementById('popup-full-secondary').textContent= p.secondaryText;
-
-  document.getElementById('popup-action-btn').onclick= ()=>{
-    const url= p.type==="abs"? ensureAbsoluteUrl(p.link):`./ads/pages/merchant.html?merchantId=${p.id}`;
-    window.open(url,"_blank");
-  };
-
-  document.getElementById('popup-state1').onclick=(e)=>{
-    if(e.target.closest('.popup-close-btn')) return;
-    document.getElementById('popup-state1').style.display='none';
-    document.getElementById('popup-state2').style.display='block';
-  };
 }
+
+function handlePopupAction(popupData) {
+  if (popupData.type === "internal") {
+      switch (popupData.link) {
+          case "battle":
+              closePopup();
+              openBattleMode();
+              break;
+          case "favorites":
+              closePopup();
+              showFavorites();
+              break;
+          case "mistakes":
+              closePopup();
+              startMistakeQuiz();
+              break;
+          default:
+              console.warn('Unknown internal action:', popupData.link);
+      }
+      return;
+  }
+
+  const url = popupData.type === "abs" ? 
+      ensureAbsoluteUrl(popupData.link) : 
+      `./ads/pages/merchant.html?merchantId=${popupData.id}`;
+
+  if (popupData.type === "abs" && isVideoUrl(url)) {
+      closePopup();
+      const player = createVideoPlayer(url);
+      if (player) {
+          document.body.appendChild(player);
+      } else {
+          window.open(url, "_blank");
+      }
+  } else {
+      window.open(url, "_blank");
+  }
+}
+
+async function loadPopupAds() {
+  if (!allBannerData.length) {
+      allBannerData = await fetchAllBannerData();
+  }
+  
+  let popupData = allBannerData.filter(x => x.position === "popup");
+  if (!popupData.length) {
+      document.getElementById('popup-container').style.display = 'none';
+      return;
+  }
+  
+  const p = popupData[0];
+  document.getElementById('popup-container').style.display = 'block';
+  document.getElementById('popup-state1').style.display = 'block';
+  document.getElementById('popup-state2').style.display = 'none';
+
+  if (p.image) {
+      await localDataManager.downloadAndCacheImage(p.image, 'banner');
+  }
+  
+  let localURL = p.image ? await localDataManager.getLocalImage(p.image, 'banner') : null;
+  let imgSrc = localURL || p.image;
+
+  // Set up small popup state
+  document.getElementById('popup-diamond').src = imgSrc;
+  document.getElementById('popup-small-title').textContent = p.title;
+  document.getElementById('popup-small-secondary').textContent = p.secondaryText;
+
+  // Set up large popup state
+  document.getElementById('popup-full-image').src = imgSrc;
+  document.getElementById('popup-full-title').textContent = p.title;
+  document.getElementById('popup-full-prime').textContent = p.primetext;
+  document.getElementById('popup-action-btn').textContent = p.btntext;
+  document.getElementById('popup-full-secondary').textContent = p.secondaryText;
+
+  // Small popup click handler - always expands to large popup
+  document.getElementById('popup-state1').onclick = (e) => {
+      if (e.target.closest('.popup-close-btn')) return;
+      document.getElementById('popup-state1').style.display = 'none';
+      document.getElementById('popup-state2').style.display = 'block';
+  };
+
+  // Action button click handler - handles both internal and external actions
+  document.getElementById('popup-action-btn').onclick = () => handlePopupAction(p);
+}
+
 function closePopup(){
   document.getElementById('popup-container').style.display='none';
 }
@@ -2863,12 +3544,14 @@ function switchToState1(){
 // ==================================================
 // 11. LocalStorage: currentExam / favorites / mistakes / quizHistory
 // ==================================================
-function loadCurrentExam(){
-  let ex= localStorage.getItem('currentExam');
-  return ex? JSON.parse(ex): null;
+function loadCurrentExam() {
+  let ex = safeGetItem('currentExam');
+  if (!ex) return null;
+  return JSON.parse(ex);
 }
-function saveCurrentExam(){
-  let cur= {
+
+function saveCurrentExam() {
+  let cur = {
     sheetName: currentSheetName,
     currentQuestionIndex,
     userAnswers,
@@ -2882,85 +3565,92 @@ function saveCurrentExam(){
     showJapanese,
     currentExamId
   };
-  localStorage.setItem('currentExam', JSON.stringify(cur));
-}
-function clearCurrentExam(){
-  localStorage.removeItem('currentExam');
-  document.getElementById('continue-exam-func-btn').style.display='none';
+  safeSetItem('currentExam', JSON.stringify(cur));
 }
 
-function loadFavorites(){
-  let f= localStorage.getItem('favorites');
-  return f? JSON.parse(f): {};
-}
-function saveFavorites(obj){
-  localStorage.setItem('favorites', JSON.stringify(obj));
+
+function clearCurrentExam() {
+  safeRemoveItem('currentExam');
+  document.getElementById('continue-exam-func-btn').style.display = 'none';
 }
 
-function loadMistakesFromCache(){
-  let m= localStorage.getItem('mistakes');
-  return m? JSON.parse(m): {};
-}
-function saveMistakesToCache(o){
-  localStorage.setItem('mistakes', JSON.stringify(o));
+
+function loadFavorites() {
+  let f = safeGetItem('favorites');
+  return f ? JSON.parse(f) : {};
 }
 
-function loadQuizHistory(){
-  let h= localStorage.getItem('quizHistory');
-  return h? JSON.parse(h): [];
+function saveFavorites(obj) {
+  safeSetItem('favorites', JSON.stringify(obj));
 }
-function saveQuizHistory(h){
-  localStorage.setItem('quizHistory', JSON.stringify(h));
+
+
+function loadMistakesFromCache() {
+  let m = safeGetItem('mistakes');
+  return m ? JSON.parse(m) : {};
 }
+
+function saveMistakesToCache(o) {
+  safeSetItem('mistakes', JSON.stringify(o));
+}
+
+function loadQuizHistory() {
+  let h = safeGetItem('quizHistory');
+  return h ? JSON.parse(h) : [];
+}
+
+function saveQuizHistory(h) {
+  safeSetItem('quizHistory', JSON.stringify(h));
+}
+
 
 // ==================================================
 // 12. 本地版本检查 & 更新
 // ==================================================
-async function checkLocalVersion(){
-  try{
-    const updateBtn= document.getElementById('update-btn');
-    const localVersionSpan= document.getElementById('local-version');
-    const remoteVersionSpan= document.getElementById('remote-version');
-    if(!updateBtn|| !localVersionSpan|| !remoteVersionSpan) return;
-    
-    // 获取远程版本和图片数据
-    const [versionData, imageUrls] = await Promise.all([
-      (async () => {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!B6:B7?key=${SYSTEM_API_KEY}`;
-        const r = await fetch(url);
-        if(!r.ok) throw new Error(`获取版本信息失败: ${r.status}`);
-        return await r.json();
-      })(),
-      fetchRemoteImageData()
-    ]);
+async function checkLocalVersion() {
+  try {
+    const updateBtn = document.getElementById('update-btn');
+    const localVersionSpan = document.getElementById('local-version');
+    const remoteVersionSpan = document.getElementById('remote-version');
+    if (!updateBtn || !localVersionSpan || !remoteVersionSpan) return;
 
-    const remoteVersion = versionData.values && versionData.values[0] ? versionData.values[0][0] : '未知';
-    const serverVersion = versionData.values && versionData.values[1] ? versionData.values[1][0] : '未知';
-    
-    // 检查本地图片状态
-    const localImages = await checkLocalImages(imageUrls);
-    const actualImageUrls = imageUrls.filter(img => localImages.includes(img.url)).map(img => img.url);
-    
-    // 使用实际存在的图片URL生成版本号
-    const localVersion = await localDataManager.generateVersion(actualImageUrls);
-    localDataManager.saveLocalVersion(localVersion);
-    
+    // 获取远程版本信息
+    // B6行 = 远程本地版 / B7行 = 服务端用
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!B6:B7?key=${SYSTEM_API_KEY}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`获取版本信息失败: ${r.status}`);
+    const versionData = await r.json();
+
+    const remoteVersion = versionData.values && versionData.values[0]
+      ? versionData.values[0][0]
+      : '未知';
+    const serverVersion = versionData.values && versionData.values[1]
+      ? versionData.values[1][0]
+      : '未知';
+
+    // **改动：直接基于本地实际数据生成版本号**
+    const localVersion = await localDataManager.generateLocalActualVersion();
+    localDataManager.saveLocalVersion(localVersion); // 存一份
+
+    // UI显示
     localVersionSpan.textContent = localVersion;
-    remoteVersionSpan.textContent = `${remoteVersion||'-'} (服务端:${serverVersion})`;
-    
-    if(localVersion === remoteVersion){
+    remoteVersionSpan.textContent = `${remoteVersion || '-'} (服务端:${serverVersion})`;
+
+    if (localVersion === remoteVersion) {
       updateBtn.dataset.status = 'latest';
       let tx = updateBtn.querySelector('.update-text');
-      if(tx) tx.textContent = '最新';
+      if (tx) tx.textContent = '最新';
     } else {
       updateBtn.dataset.status = 'needUpdate';
       let tx = updateBtn.querySelector('.update-text');
-      if(tx) tx.textContent = '需要更新';
+      if (tx) tx.textContent = '需要更新';
     }
-  }catch(e){
+  } catch (e) {
     console.error('检查版本失败:', e);
   }
 }
+
+
 
 async function fetchRemoteCategories() {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/考题管理!A:G?key=${SYSTEM_API_KEY}`;
@@ -2992,84 +3682,83 @@ async function checkAndUpdate() {
   if (!updateBtn || updateBtn.dataset.status === 'updating') return;
 
   function updateStatus(st, txt) {
-      updateBtn.dataset.status = st;
-      let t = updateBtn.querySelector('.update-text');
-      if (t) t.textContent = txt;
+    updateBtn.dataset.status = st;
+    let t = updateBtn.querySelector('.update-text');
+    if (t) t.textContent = txt;
   }
 
   updateStatus('updating', '更新中...');
   let tout = setTimeout(() => {
-      if (updateBtn.dataset.status === 'updating') {
-          updateStatus('needUpdate', '更新超时');
-          localDataManager.updateStatus = 'needUpdate';
-      }
-  }, 300000);
+    if (updateBtn.dataset.status === 'updating') {
+      updateStatus('needUpdate', '更新超时');
+      localDataManager.updateStatus = 'needUpdate';
+    }
+  }, 300000); // 5分钟超时
 
   try {
-      // Fetch remote data information
-      const [imageUrls, categories] = await Promise.all([
-          fetchRemoteImageData(),
-          fetchRemoteCategories()
-      ]);
+    // 1) 获取远程的图片列表、题库列表
+    const [imageUrls, categories] = await Promise.all([
+      fetchRemoteImageData(),
+      fetchRemoteCategories()
+    ]);
 
-      console.log('=== 开始检查本地数据状态 ===');
+    console.log('=== 开始检查并更新本地数据 ===');
 
-      // Check quiz content
-      const zhCategories = categories.filter(x => x.lang === "ZH");
-      const quizUpdateNeeded = [];
-
-      for (const cat of zhCategories) {
-          const localData = await localDataManager.getQuizData('ZH', cat.internalCode);
-          if (!localData || !localData.length) {
-              console.log(`题库需要更新: ${cat.sheetName}`);
-              quizUpdateNeeded.push(cat);
-          } else {
-              console.log(`题库已存在: ${cat.sheetName} (${localData.length}题)`);
-          }
+    // 2) 找出本地没保存的题库
+    const zhCategories = categories.filter(x => x.lang === "ZH");
+    const quizUpdateNeeded = [];
+    for (const cat of zhCategories) {
+      const localData = await localDataManager.getQuizData('ZH', cat.internalCode);
+      if (!localData || !localData.length) {
+        quizUpdateNeeded.push(cat);
       }
+    }
 
-      // Check images
-      const localImages = await checkLocalImages(imageUrls);
-      const missingImages = imageUrls.filter(img => !localImages.includes(img.url));
-      console.log(`需要下载的图片数量: ${missingImages.length}`);
-
-      // Update missing content
-      const errors = [];
-      if (quizUpdateNeeded.length > 0) {
-          for (const cat of quizUpdateNeeded) {
-              try {
-                  await updateQuizData(cat);
-              } catch (e) {
-                  errors.push(`题库[${cat.sheetName}]: ${e.message}`);
-              }
-          }
+    // 3) 更新缺失的题库
+    const errors = [];
+    if (quizUpdateNeeded.length > 0) {
+      for (const cat of quizUpdateNeeded) {
+        try {
+          await updateQuizData(cat);
+        } catch (e) {
+          errors.push(`题库[${cat.sheetName}]: ${e.message}`);
+        }
       }
+    }
 
-      if (missingImages.length > 0) {
-          const result = await localDataManager.updateFromSystemSheet(imageUrls);
-          if (result.failedCount > 0) {
-              errors.push(`${result.failedCount}个图片下载失败`);
-          }
-          // 更新UI显示版本号
-          const localVerSpan = document.getElementById('local-version');
-          if (localVerSpan) localVerSpan.textContent = result.version;
-      } else {
-          // 如果没有需要更新的图片，仍然需要生成新版本号
-          const newVersion = await localDataManager.generateVersion(imageUrls.map(i => i.url));
-          localDataManager.saveLocalVersion(newVersion);
-          const localVerSpan = document.getElementById('local-version');
-          if (localVerSpan) localVerSpan.textContent = newVersion;
+    // 4) 更新缺失的图片
+    //   先检查哪些已下载
+    const localImages = await checkLocalImages(imageUrls);
+    const missingImages = imageUrls.filter(img => !localImages.includes(img.url));
+    if (missingImages.length > 0) {
+      const result = await localDataManager.updateFromSystemSheet(imageUrls);
+      if (result.failedCount > 0) {
+        errors.push(`${result.failedCount}个图片下载失败`);
       }
-      
-      updateStatus('latest', errors.length > 0 ? errors.join(', ') : '最新');
+    }
 
+    // 5) 重新基于本地实际数据计算版本号
+    const newVersion = await localDataManager.generateLocalActualVersion();
+    localDataManager.saveLocalVersion(newVersion);
+
+    // 显示
+    const localVerSpan = document.getElementById('local-version');
+    if (localVerSpan) localVerSpan.textContent = newVersion;
+
+    if (errors.length > 0) {
+      updateStatus('needUpdate', errors.join(', '));
+    } else {
+      updateStatus('latest', '最新');
+    }
   } catch (e) {
-      console.error('更新失败:', e);
-      updateStatus('needUpdate', '更新失败');
+    console.error('更新失败:', e);
+    updateStatus('needUpdate', '更新失败');
   } finally {
-      clearTimeout(tout);
+    clearTimeout(tout);
   }
 }
+
+
 
 async function fetchRemoteImageData() {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${SYSTEM_SPREADSHEET_ID}/values/${SYSTEM_CN_SHEET_NAME}!C:D?key=${SYSTEM_API_KEY}`;
@@ -3120,352 +3809,545 @@ async function updateQuizData(category) {
 // 14. LocalDataManager
 // ==================================================
 class LocalDataManager {
-  constructor(){
-    this.dbPromise = null;
-    this.versionKey='localImagesVersion';
-    this.updateStatus='latest';
-    this.dbName='zalemCache';
-    this.stores={
-      quizImages:'quizImages',
-      bannerImages:'bannerImages',
-      quizTest:'quizTest'
-    };
-    this.db=null;
-    this.initDB();
+  constructor() {
+      this.dbPromise = null;
+      this.versionKey = 'localImagesVersion';
+      this.updateStatus = 'latest';
+      this.dbName = 'zalemCache';
+      this.stores = {
+          quizImages: 'quizImages',
+          bannerImages: 'bannerImages',
+          quizTest: 'quizTest'
+      };
+      this.db = null;
+      this.initDB();
   }
 
   async ensureDbReady() {
-    if (!this.dbPromise) {
-        this.dbPromise = this.initDB();
-    }
-    this.db = await this.dbPromise;
-    return this.db;
-}
+      if (!this.dbPromise) {
+          this.dbPromise = this.initDB();
+      }
+      this.db = await this.dbPromise;
+      return this.db;
+  }
 
-
-async initDB() {
-  return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, 1);
-      
-      request.onerror = (event) => {
-          console.error('数据库打开失败:', event.target.error);
-          reject(event.target.error);
-      };
-      
-      request.onsuccess = (event) => {
-          const db = event.target.result;
+  async initDB() {
+      return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, 1);
           
-          // Add error handler for the database
-          db.onerror = (event) => {
-              console.error('数据库错误:', event.target.error);
+          request.onerror = (event) => {
+              console.error('数据库打开失败:', event.target.error);
+              reject(event.target.error);
           };
           
-          resolve(db);
-      };
-      
-      request.onupgradeneeded = (event) => {
-          const db = event.target.result;
+          request.onsuccess = (event) => {
+              const db = event.target.result;
+              db.onerror = (event) => {
+                  console.error('数据库错误:', event.target.error);
+              };
+              resolve(db);
+          };
           
-          // Create stores if they don't exist
-          if (!db.objectStoreNames.contains(this.stores.quizImages)) {
-              db.createObjectStore(this.stores.quizImages, { keyPath: 'url' });
-          }
-          if (!db.objectStoreNames.contains(this.stores.bannerImages)) {
-              db.createObjectStore(this.stores.bannerImages, { keyPath: 'url' });
-          }
-          if (!db.objectStoreNames.contains(this.stores.quizTest)) {
-              db.createObjectStore(this.stores.quizTest, { keyPath: 'id' });
-          }
+          request.onupgradeneeded = (event) => {
+              const db = event.target.result;
+              if (!db.objectStoreNames.contains(this.stores.quizImages)) {
+                  db.createObjectStore(this.stores.quizImages, { keyPath: 'url' });
+              }
+              if (!db.objectStoreNames.contains(this.stores.bannerImages)) {
+                  db.createObjectStore(this.stores.bannerImages, { keyPath: 'url' });
+              }
+              if (!db.objectStoreNames.contains(this.stores.quizTest)) {
+                  db.createObjectStore(this.stores.quizTest, { keyPath: 'id' });
+              }
+          };
+      });
+  }
+
+/**
+ * 根据“本地IndexedDB里实际存储的题库与图片”生成版本号
+ * 与 generateVersion(...) 相似，但只基于本地已存在的数据。
+ */
+async generateLocalActualVersion() {
+  await this.ensureDbReady();
+
+  // 1) 获取 quizTest store 中所有题库
+  const quizTransaction = this.db.transaction(this.stores.quizTest, 'readonly');
+  const quizStore = quizTransaction.objectStore(this.stores.quizTest);
+  const quizRequest = quizStore.getAll();
+  let quizDataArray = [];
+  try {
+    quizDataArray = await new Promise((resolve, reject) => {
+      quizRequest.onsuccess = () => resolve(quizRequest.result || []);
+      quizRequest.onerror = () => reject(quizRequest.error);
+    });
+  } catch (error) {
+    console.error('获取 quizTest store 数据失败:', error);
+  }
+
+  // 2) 获取 quizImages + bannerImages 两个store中所有 key
+  let allImageKeys = [];
+  try {
+    // quizImages
+    const t1 = this.db.transaction(this.stores.quizImages, 'readonly');
+    const s1 = t1.objectStore(this.stores.quizImages);
+    const r1 = s1.getAllKeys();
+
+    const quizKeys = await new Promise((resolve, reject) => {
+      r1.onsuccess = () => resolve(r1.result || []);
+      r1.onerror = () => reject(r1.error);
+    });
+
+    // bannerImages
+    const t2 = this.db.transaction(this.stores.bannerImages, 'readonly');
+    const s2 = t2.objectStore(this.stores.bannerImages);
+    const r2 = s2.getAllKeys();
+
+    const bannerKeys = await new Promise((resolve, reject) => {
+      r2.onsuccess = () => resolve(r2.result || []);
+      r2.onerror = () => reject(r2.error);
+    });
+
+    // 合并两个store的key
+    allImageKeys = quizKeys.concat(bannerKeys);
+  } catch (err) {
+    console.error('获取图片store数据失败:', err);
+  }
+
+  // 3) 整理题库数据
+  // 与 generateVersion(...) 里相同的逻辑，保证格式化后排序并哈希
+  const sortedQuizData = quizDataArray
+    .filter(d => d && d.id && Array.isArray(d.questions))
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(d => {
+      const sortedQuestions = d.questions
+        .filter(q => q && typeof q.question === 'string')
+        .map(q => ({
+          ...q,
+          options: Array.isArray(q.options) ? [...q.options].sort() : [],
+          image: q.image || '',
+          explanation: q.explanation || ''
+        }))
+        .sort((q1, q2) => {
+          const comp = q1.question.localeCompare(q2.question);
+          if (comp !== 0) return comp;
+          return q1.answer.localeCompare(q2.answer);
+        });
+      return {
+        id: d.id,
+        questions: sortedQuestions
       };
-  });
+    });
+
+  // 4) 将图片key排序
+  const sortedImageKeys = [...allImageKeys].sort((a, b) => a.localeCompare(b));
+
+  // 5) 拼接成字符串，用简易hash
+  //   - 题库: "id: question::answer::options|question::answer::options"
+  //   - 图片: 逗号分隔
+  const quizPart = sortedQuizData.map(d => {
+    const questionHashes = d.questions.map(q => [
+      q.question,
+      q.answer,
+      q.options.join('|'),
+      q.image,
+      q.explanation
+    ].join('::'));
+    return `${d.id}:${questionHashes.join('|')}`;
+  }).join(',');
+
+  const imagePart = sortedImageKeys.join(',');
+
+  const contentString = quizPart + '||' + imagePart;
+  if (!contentString) return 'v0';
+
+  // 6) 计算哈希
+  let hash = 0;
+  const prime = 31;
+  for (let i = 0; i < contentString.length; i++) {
+    hash = Math.imul(hash, prime) + contentString.charCodeAt(i) | 0;
   }
 
+  const versionString = 'v' + Math.abs(hash).toString(36);
+  return versionString;
+};
 
-  getLocalVersion(){
-    return localStorage.getItem(this.versionKey)||'';
-  }
-  saveLocalVersion(v){
-    localStorage.setItem(this.versionKey,v);
-  }
   
+  getLocalVersion() {
+      return localStorage.getItem(this.versionKey) || '';
+  }
 
-  async hasLocalImage(url, type='quiz'){
-    await this.ensureDbReady();
-    if(!url) return false;
-    return new Promise(res=>{
-      const storeName= (type==='banner'? this.stores.bannerImages:this.stores.quizImages);
-      let t= this.db.transaction(storeName,'readonly');
-      let s= t.objectStore(storeName);
-      let rq= s.get(url);
-      rq.onsuccess=()=>{
-        let rr= rq.result;
-        if(rr && rr.blob){
-          res(true);
-        } else {
-          res(false);
-        }
-      };
-      rq.onerror=()=>{
-        console.warn('检查缓存图片失败:',url);
-        res(false);
-      };
-    });
+  saveLocalVersion(v) {
+      localStorage.setItem(this.versionKey, v);
   }
-  async getLocalImage(url,type='quiz'){
-    await this.ensureDbReady();
-    if(!url) return null;
-    return new Promise(res=>{
-      const storeName= (type==='banner'? this.stores.bannerImages:this.stores.quizImages);
-      let t= this.db.transaction(storeName,'readonly');
-      let s= t.objectStore(storeName);
-      let rq= s.get(url);
-      rq.onsuccess=()=>{
-        let r= rq.result;
-        if(r && r.blob){
-          res(URL.createObjectURL(r.blob));
-        }else{
-          res(null);
-        }
-      };
-      rq.onerror=()=>{
-        console.warn('获取缓存图片失败:',url);
-        res(null);
-      };
-    });
-  }
-  async downloadAndCacheImage(url,type='quiz'){
-    await this.ensureDbReady();
-    if(!url) return false;
-    try{
-      if(!/\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(url)
-        && !url.includes('drive.google.com')
-        && !url.includes('github.com')
-        && !url.includes('raw=true')){
-        console.error('无效图片URL格式:',url);
-        return false;
-      }
-      let processedUrl= url;
-      if(url.includes('github.com') && !url.includes('raw.githubusercontent.com')){
-        processedUrl= url.replace('github.com','raw.githubusercontent.com').replace('/blob/','/');
-      }
-      if(processedUrl.startsWith('file://')){
-        processedUrl= processedUrl.replace('file://','https://');
-      } else if(!processedUrl.startsWith('http://') && !processedUrl.startsWith('https://')){
-        processedUrl= 'https://'+ processedUrl;
-      }
-      try{
-        let dec= decodeURIComponent(processedUrl);
-        let [path,query]= dec.split('?');
-        let enc= encodeURI(path);
-        if(query) enc+= '?'+ query;
-        processedUrl= enc;
-      }catch(ee){}
-      let resp= await fetch(processedUrl,{credentials:'omit',headers:{'Accept':'image/*'}});
-      if(!resp.ok) throw new Error(`HTTP error! status:${resp.status}`);
-      let blob= await resp.blob();
-      if(!blob.type.startsWith('image/')) throw new Error('下载内容不是图片');
 
-      let storeName= (type==='banner'? this.stores.bannerImages:this.stores.quizImages);
-      return new Promise(resolve=>{
-        let t= this.db.transaction(storeName,'readwrite');
-        let s= t.objectStore(storeName);
-        let rq= s.put({url,blob,timestamp:Date.now()});
-        t.oncomplete=()=> resolve(true);
-        t.onerror= e=>{
-          console.error('写入图片DB失败:', e);
-          resolve(false);
-        };
-      });
-    }catch(e){
-      console.error('下载图片失败:', e.message);
-      this.updateStatus='needUpdate';
-      return false;
-    }
+/**
+ * 修正 GitHub 链接 + 去除可能存在的末尾空格/换行
+ */
+normalizeImageUrl(url) {
+  if (!url) return '';
+
+  // 处理 GitHub URL
+  let normalizedUrl = url;
+  if (url.includes('github.com') && !url.includes('raw.githubusercontent.com')) {
+    normalizedUrl = url
+      .replace('github.com', 'raw.githubusercontent.com')
+      .replace('/blob/', '/');
   }
-  async saveQuizData(language, category, questions){
+
+  // 移除 "?raw=true" 参数后，额外 trim() 一下
+  normalizedUrl = normalizedUrl.replace('?raw=true', '').trim();
+
+  // 处理 URL 编码
+  try {
+    // 先 decode，去除已有的 %xx
+    const decoded = decodeURIComponent(normalizedUrl);
+    // 只对 path 做 encodeURI
+    const [path, query] = decoded.split('?');
+    const encodedPath = encodeURI(path);
+    return query ? `${encodedPath}?${query}` : encodedPath;
+  } catch (e) {
+    console.warn('URL normalization error:', e);
+    return normalizedUrl;
+  }
+}
+
+
+  async hasLocalImage(url, type = 'quiz') {
+      await this.ensureDbReady();
+      if (!url) return false;
+
+      const normalizedUrl = this.normalizeImageUrl(url);
+      
+      return new Promise(resolve => {
+          const storeName = (type === 'banner' ? this.stores.bannerImages : this.stores.quizImages);
+          const transaction = this.db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const request = store.get(normalizedUrl);
+
+          request.onsuccess = () => {
+              const result = request.result;
+              resolve(result && result.blob ? true : false);
+          };
+
+          request.onerror = () => {
+              console.warn('检查缓存图片失败:', normalizedUrl);
+              resolve(false);
+          };
+      });
+  }
+
+  async getLocalImage(url, type = 'quiz') {
+      await this.ensureDbReady();
+      if (!url) return null;
+
+      const normalizedUrl = this.normalizeImageUrl(url);
+      console.log('Getting local image:', normalizedUrl);
+      
+      return new Promise(resolve => {
+          const storeName = (type === 'banner' ? this.stores.bannerImages : this.stores.quizImages);
+          const transaction = this.db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const request = store.get(normalizedUrl);
+
+          request.onsuccess = () => {
+              const result = request.result;
+              if (result && result.blob) {
+                  try {
+                      // 创建一个新的Blob对象，确保类型正确
+                      const imageBlob = new Blob([result.blob], { type: result.blob.type || 'image/jpeg' });
+                      const objectUrl = URL.createObjectURL(imageBlob);
+                      
+                      // 验证objectUrl是否有效
+                      const img = new Image();
+                      let timeoutId;
+
+                      const cleanup = () => {
+                          clearTimeout(timeoutId);
+                          URL.revokeObjectURL(objectUrl);
+                      };
+
+                      img.onload = () => {
+                          cleanup();
+                          // 确保图片尺寸有效
+                          if (img.width > 0 && img.height > 0) {
+                              const newObjectUrl = URL.createObjectURL(imageBlob);
+                              resolve(newObjectUrl);
+                          } else {
+                              console.warn('Invalid image dimensions for:', normalizedUrl);
+                              resolve(null);
+                          }
+                      };
+
+                      img.onerror = () => {
+                          cleanup();
+                          console.warn('Invalid image data for:', normalizedUrl);
+                          resolve(null);
+                      };
+
+                      // 设置加载超时
+                      timeoutId = setTimeout(() => {
+                          cleanup();
+                          console.warn('Image load timeout for:', normalizedUrl);
+                          resolve(null);
+                      }, 5000);
+
+                      img.src = objectUrl;
+                  } catch (error) {
+                      console.error('Error processing image blob:', error);
+                      resolve(null);
+                  }
+              } else {
+                  console.warn('Image not found in local storage:', normalizedUrl);
+                  resolve(null);
+              }
+          };
+
+          request.onerror = (error) => {
+              console.error('Error retrieving image from local storage:', error);
+              resolve(null);
+          };
+      });
+  }
+
+  async downloadAndCacheImage(url, type = 'quiz') {
     await this.ensureDbReady();
-    if(!this.db) return false;
-    try{
-      return new Promise(resolve=>{
-        let id= `${language}_${category}`;
-        let data= {id, language, category, questions, timestamp: Date.now()};
-        let t= this.db.transaction(this.stores.quizTest,'readwrite');
-        let s= t.objectStore(this.stores.quizTest);
-        let rq= s.put(data);
-        rq.onsuccess=()=> resolve(true);
-        rq.onerror=()=>{
-          console.error('保存题目数据失败:', id);
-          resolve(false);
-        };
-      });
-    }catch(e){
-      console.error('saveQuizData出错:', e);
-      return false;
-    }
-  }
-  async getQuizData(language, category){
-    await this.ensureDbReady();
-    if(!this.db) return null;
-    try{
-      return new Promise(resolve=>{
-        let id= `${language}_${category}`;
-        let t= this.db.transaction(this.stores.quizTest,'readonly');
-        let s= t.objectStore(this.stores.quizTest);
-        let rq= s.get(id);
-        rq.onsuccess=()=>{
-          let r= rq.result;
-          resolve(r? r.questions: null);
-        };
-        rq.onerror=()=>{
-          console.error('获取题目数据失败:', id);
-          resolve(null);
-        };
-      });
-    }catch(e){
-      console.error('getQuizData出错:', e);
-      return null;
-    }
-  }
-  async updateFromSystemSheet(imageUrls) {
-    if (this.updateStatus === 'updating') {
-        console.log('更新进行中...');
-        return { version: this.getLocalVersion(), failedCount: 0 };
-    }
+    if (!url) return false;
+
+    const normalizedUrl = this.normalizeImageUrl(url);
+    console.log('Downloading and caching image:', normalizedUrl);
     
-    this.updateStatus = 'updating';
-    await this.ensureDbReady();
-
     try {
-        // Handle image updates
-        let checks = await Promise.all(imageUrls.map(async it => {
-            let has = await this.hasLocalImage(it.url, it.type);
-            return { url: it.url, type: it.type, needsDownload: !has };
-        }));
-        
-        let newOnes = checks.filter(x => x.needsDownload);
-        let failedCount = 0;
-        
-        for (const item of newOnes) {
-            let ok = await this.downloadAndCacheImage(item.url, item.type);
-            if (!ok) failedCount++;
+        // Check if already cached
+        const hasLocal = await this.hasLocalImage(normalizedUrl, type);
+        if (hasLocal) {
+            console.log('Image already cached:', normalizedUrl);
+            return true;
         }
 
-        // 清理未使用的图片
-        if (this.db) {
-            const neededUrls = new Set(imageUrls.map(i => i.url));
-            let tq = this.db.transaction(this.stores.quizImages, 'readwrite');
-            let tb = this.db.transaction(this.stores.bannerImages, 'readwrite');
-            let sq = tq.objectStore(this.stores.quizImages);
-            let sb = tb.objectStore(this.stores.bannerImages);
-            
-            let rq1 = sq.getAllKeys();
-            let rq2 = sb.getAllKeys();
-            
-            rq1.onsuccess = () => {
-                let keys = rq1.result || [];
-                keys.forEach(url => {
-                    if (!neededUrls.has(url)) {
-                        sq.delete(url);
-                    }
-                });
-            };
-            
-            rq2.onsuccess = () => {
-                let keys = rq2.result || [];
-                keys.forEach(url => {
-                    if (!neededUrls.has(url)) {
-                        sb.delete(url);
-                    }
-                });
-            };
+        // Download image using no-cors mode for YouTube thumbnails
+        const options = {
+            credentials: 'omit',
+            headers: {
+                'Accept': 'image/*'
+            }
+        };
+        
+        if (normalizedUrl.includes('ytimg.com')) {
+            options.mode = 'no-cors';
         }
 
-        // 生成新版本号
-        let newVersion = await this.generateVersion(imageUrls.map(i => i.url));
-        this.saveLocalVersion(newVersion);
-        this.updateStatus = 'latest';
+        const response = await fetch(normalizedUrl, options);
+
+        if (!response.ok && response.type !== 'opaque') {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
         
-        return { version: newVersion, failedCount };
+        // Store in IndexedDB
+        const storeName = (type === 'banner' ? this.stores.bannerImages : this.stores.quizImages);
+        await new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.put({
+                url: normalizedUrl,
+                blob,
+                timestamp: Date.now()
+            });
+
+            transaction.oncomplete = () => resolve(true);
+            transaction.onerror = (e) => reject(e);
+        });
+
+        console.log('Successfully cached image:', normalizedUrl);
+        return true;
     } catch (error) {
-        this.updateStatus = 'needUpdate';
-        throw error;
+        console.error('Failed to download and cache image:', error);
+        return false;
     }
 }
 
-  
-  async generateVersion(imageUrls = []) {
-    await this.ensureDbReady();
-    
-    // 获取所有题目数据，使用单个事务确保数据一致性
-    const transaction = this.db.transaction(this.stores.quizTest, 'readonly');
-    const store = transaction.objectStore(this.stores.quizTest);
-    
-    const getAllData = () => new Promise((resolve, reject) => {
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    });
-    
-    let quizData;
-    try {
-      quizData = await getAllData();
-    } catch (error) {
-      console.error('获取题目数据失败:', error);
-      quizData = [];
-    }
-    
-    // 确保所有数组的排序是确定性的
-    const sortedImageUrls = [...imageUrls].sort((a, b) => a.localeCompare(b));
-    const sortedQuizData = quizData
-      .filter(d => d && d.id && Array.isArray(d.questions))
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map(d => {
-        const sortedQuestions = d.questions
-          .filter(q => q && typeof q.question === 'string')
-          .map(q => ({
-            ...q,
-            options: (Array.isArray(q.options) ? [...q.options] : []).sort(),
-            image: q.image || '',
-            explanation: q.explanation || ''
-          }))
-          .sort((a, b) => {
-            const qCompare = a.question.localeCompare(b.question);
-            if (qCompare !== 0) return qCompare;
-            return a.answer.localeCompare(b.answer);
+  async saveQuizData(language, category, questions) {
+      await this.ensureDbReady();
+      if (!this.db) return false;
+      try {
+          return new Promise(resolve => {
+              const id = `${language}_${category}`;
+              const data = {
+                  id,
+                  language,
+                  category,
+                  questions,
+                  timestamp: Date.now()
+              };
+              const transaction = this.db.transaction(this.stores.quizTest, 'readwrite');
+              const store = transaction.objectStore(this.stores.quizTest);
+              const request = store.put(data);
+              request.onsuccess = () => resolve(true);
+              request.onerror = () => {
+                  console.error('保存题目数据失败:', id);
+                  resolve(false);
+              };
           });
+      } catch (e) {
+          console.error('saveQuizData出错:', e);
+          return false;
+      }
+  }
 
-        return {
-          id: d.id,
-          questions: sortedQuestions
-        };
+  async getQuizData(language, category) {
+      await this.ensureDbReady();
+      if (!this.db) return null;
+      try {
+          return new Promise(resolve => {
+              const id = `${language}_${category}`;
+              const transaction = this.db.transaction(this.stores.quizTest, 'readonly');
+              const store = transaction.objectStore(this.stores.quizTest);
+              const request = store.get(id);
+              request.onsuccess = () => {
+                  const result = request.result;
+                  resolve(result ? result.questions : null);
+              };
+              request.onerror = () => {
+                  console.error('获取题目数据失败:', id);
+                  resolve(null);
+              };
+          });
+      } catch (e) {
+          console.error('getQuizData出错:', e);
+          return null;
+      }
+  }
+
+  async generateVersion(imageUrls = []) {
+      await this.ensureDbReady();
+      
+      const transaction = this.db.transaction(this.stores.quizTest, 'readonly');
+      const store = transaction.objectStore(this.stores.quizTest);
+      
+      const getAllData = () => new Promise((resolve, reject) => {
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
       });
+      
+      let quizData;
+      try {
+          quizData = await getAllData();
+      } catch (error) {
+          console.error('获取题目数据失败:', error);
+          quizData = [];
+      }
+      
+      const sortedImageUrls = [...imageUrls].sort((a, b) => a.localeCompare(b));
+      const sortedQuizData = quizData
+          .filter(d => d && d.id && Array.isArray(d.questions))
+          .sort((a, b) => a.id.localeCompare(b.id))
+          .map(d => ({
+              id: d.id,
+              questions: d.questions
+                  .filter(q => q && typeof q.question === 'string')
+                  .map(q => ({
+                      ...q,
+                      options: (Array.isArray(q.options) ? [...q.options] : []).sort(),
+                      image: q.image || '',
+                      explanation: q.explanation || ''
+                  }))
+                  .sort((a, b) => {
+                      const qCompare = a.question.localeCompare(b.question);
+                      if (qCompare !== 0) return qCompare;
+                      return a.answer.localeCompare(b.answer);
+                  })
+          }));
 
-    // 构建一个确定性的字符串表示
-    const contentParts = [
-      sortedImageUrls.join(','),
-      sortedQuizData.map(d => {
-        const questionHashes = d.questions.map(q => [
-          q.question,
-          q.answer,
-          q.options.join('|'),
-          q.image,
-          q.explanation
-        ].join('::'));
-        return `${d.id}:${questionHashes.join('|')}`;
-      }).join(',')
-    ];
+      const contentParts = [
+          sortedImageUrls.join(','),
+          sortedQuizData.map(d => {
+              const questionHashes = d.questions.map(q => [
+                  q.question,
+                  q.answer,
+                  q.options.join('|'),
+                  q.image,
+                  q.explanation
+              ].join('::'));
+              return `${d.id}:${questionHashes.join('|')}`;
+          }).join(',')
+      ];
 
-    const contentString = contentParts.join('|');
-    if (!contentString) return 'v0';
+      const contentString = contentParts.join('|');
+      if (!contentString) return 'v0';
 
-    // 使用更稳定的哈希算法
-    let hash = 0;
-    const prime = 31;
-    for (let i = 0; i < contentString.length; i++) {
-      hash = Math.imul(hash, prime) + contentString.charCodeAt(i) | 0;
-    }
-    
-    return 'v' + Math.abs(hash).toString(36);
+      let hash = 0;
+      const prime = 31;
+      for (let i = 0; i < contentString.length; i++) {
+          hash = Math.imul(hash, prime) + contentString.charCodeAt(i) | 0;
+      }
+      
+      return 'v' + Math.abs(hash).toString(36);
+  }
+
+  async updateFromSystemSheet(imageUrls) {
+      if (this.updateStatus === 'updating') {
+          console.log('更新进行中...');
+          return { version: this.getLocalVersion(), failedCount: 0 };
+      }
+      
+      this.updateStatus = 'updating';
+      await this.ensureDbReady();
+
+      try {
+          const checks = await Promise.all(imageUrls.map(async item => {
+              const has = await this.hasLocalImage(item.url, item.type);
+              return { url: item.url, type: item.type, needsDownload: !has };
+          }));
+          
+          const newOnes = checks.filter(x => x.needsDownload);
+          let failedCount = 0;
+          
+          for (const item of newOnes) {
+              const ok = await this.downloadAndCacheImage(item.url, item.type);
+              if (!ok) failedCount++;
+          }
+
+          // 清理未使用的图片
+          if (this.db) {
+              const neededUrls = new Set(imageUrls.map(i => i.url));
+              const tq = this.db.transaction(this.stores.quizImages, 'readwrite');
+              const tb = this.db.transaction(this.stores.bannerImages, 'readwrite');
+              const sq = tq.objectStore(this.stores.quizImages);
+              const sb = tb.objectStore(this.stores.bannerImages);
+              
+              const rq1 = sq.getAllKeys();
+              const rq2 = sb.getAllKeys();
+              
+              rq1.onsuccess = () => {
+                  const keys = rq1.result || [];
+                  keys.forEach(url => {
+                      if (!neededUrls.has(url)) {
+                          sq.delete(url);
+                      }
+                  });
+              };
+              
+              rq2.onsuccess = () => {
+                  const keys = rq2.result || [];
+                  keys.forEach(url => {
+                      if (!neededUrls.has(url)) {
+                          sb.delete(url);
+                      }
+                  });
+              };
+          }
+
+          const newVersion = await this.generateVersion(imageUrls.map(i => i.url));
+          this.saveLocalVersion(newVersion);
+          this.updateStatus = 'latest';
+          
+          return { version: newVersion, failedCount };
+      } catch (error) {
+          this.updateStatus = 'needUpdate';
+          throw error;
+      }
   }
 }
 
